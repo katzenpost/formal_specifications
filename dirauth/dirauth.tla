@@ -10,32 +10,31 @@ EXTENDS Naturals, Sequences, TLC, FiniteSets
 
 CONSTANT DirAuthNodes, Relays
 
-VARIABLES consensus, votes, keys, phase, descriptors, threshold, BadActors, epoch
+VARIABLES consensus, votes, keys, phase, descriptors, UnreliableActors, epoch
 
-vars == <<consensus, votes, keys, phase, descriptors, threshold, BadActors, epoch>>
+vars == <<consensus, votes, keys, phase, descriptors, UnreliableActors, epoch>>
 
 Init ==
     /\ epoch = 0
     /\ consensus = <<>>
-    /\ votes = [n \in DirAuthNodes |-> <<>>]
+    /\ votes = [n \in DirAuthNodes |-> {}]
     /\ keys = [n \in DirAuthNodes |-> "none"]
     /\ descriptors = [n \in DirAuthNodes |-> {}]
     /\ phase = "KeyGeneration"
-    /\ threshold = (Cardinality(DirAuthNodes) \div 2) + 1
-    /\ BadActors = {}
+    /\ UnreliableActors = {}
 
-Threshold == (Cardinality(DirAuthNodes \ BadActors) \div 2) + 1
+Threshold == (Cardinality(DirAuthNodes \ UnreliableActors) \div 2) + 1
 
-BecomeBadActor(n) ==
+BecomeUnreliableActor(n) ==
     /\ phase \in {"KeyGeneration", "DescriptorCollection", "DescriptorExchange", "Vote"}
-    /\ n \notin BadActors
-    /\ BadActors' = BadActors \union {n}
+    /\ n \notin UnreliableActors
+    /\ UnreliableActors' = UnreliableActors \union {n}
     /\ UNCHANGED <<votes, consensus, keys, descriptors, phase, epoch>>
 
 FailedProtocolRound ==
-    /\ Cardinality(DirAuthNodes \ BadActors) < 3
+    /\ Cardinality(DirAuthNodes \ UnreliableActors) < 3
     /\ phase' = "KeyGeneration"
-    /\ BadActors' = {}
+    /\ UnreliableActors' = {}
     /\ votes' = [n \in DirAuthNodes |-> <<>>]
     /\ keys' = [n \in DirAuthNodes |-> "none"]
     /\ consensus' = <<>>
@@ -45,7 +44,7 @@ FailedProtocolRound ==
 FailedConsensus ==
     /\ phase = "FailedConsensus"
     /\ phase' = "KeyGeneration"
-    /\ BadActors' = {}
+    /\ UnreliableActors' = {}
     /\ votes' = [n \in DirAuthNodes |-> <<>>]
     /\ keys' = [n \in DirAuthNodes |-> "none"]
     /\ consensus' = <<>>
@@ -55,10 +54,10 @@ KeyGeneration(n) ==
     /\ phase = "KeyGeneration"
     /\ IF Cardinality({m \in DirAuthNodes : keys[m] /= "none"}) < 3
         THEN
-            /\ UNCHANGED <<votes, consensus, descriptors, BadActors, epoch, keys>>
+            /\ UNCHANGED <<votes, consensus, descriptors, UnreliableActors, epoch, keys>>
             /\ phase' = "FailedConsensus"
         ELSE
-            /\ UNCHANGED <<votes, consensus, descriptors, BadActors, epoch>>
+            /\ UNCHANGED <<votes, consensus, descriptors, UnreliableActors, epoch>>
             /\ keys' = [keys EXCEPT ![n] = "key"]
             /\ phase' = "DescriptorCollection"
 
@@ -66,7 +65,7 @@ DescriptorCollection(n, m) ==
     /\ phase = "DescriptorCollection"
     /\ keys[n] /= "none"
     /\ m \in Relays
-    /\ UNCHANGED <<votes, consensus, keys, BadActors, epoch>>
+    /\ UNCHANGED <<votes, consensus, keys, UnreliableActors, epoch>>
     /\ descriptors' = [descriptors EXCEPT ![n] = @ \union {m}]
     /\ phase' = "DescriptorExchange"
 
@@ -76,9 +75,9 @@ DescriptorExchange(n, m) ==
     /\ keys[m] /= "none"
     /\ m /= n
     /\ UNCHANGED <<votes, consensus, keys, epoch>>
-    /\ descriptors' = [descriptors EXCEPT ![n] = IF n \in BadActors THEN @ \ {RandomElement(@)} ELSE @ \union descriptors[m]]
+    /\ descriptors' = [descriptors EXCEPT ![n] = IF n \in UnreliableActors THEN @ \ {RandomElement(@)} ELSE @ \union descriptors[m]]
     /\ phase' = "Vote"
-
+    
 Consensus ==
     /\ phase = "Consensus"
     /\ UNCHANGED <<votes, keys, descriptors>>
@@ -86,61 +85,48 @@ Consensus ==
        IN Cardinality(Ups) >= Threshold
     /\ consensus' = Append(consensus, <<epoch, "up">>)
     /\ phase' = "KeyGeneration"
-    /\ BadActors' = {}
- 
- VoteGood(n, m) ==
+    /\ UnreliableActors' = {}
+  
+VoteOnDescriptorSet(n, D) ==
     /\ phase = "Vote"
     /\ keys[n] /= "none"
-    /\ keys[m] /= "none"
-    /\ m /= n
-    /\ UNCHANGED <<consensus, keys, descriptors, epoch>>
-    /\ votes' = [votes EXCEPT ![n] = Append(@, "up")]
-    /\ LET UpVotes == {x \in DirAuthNodes : Len(votes'[x]) > 0 /\ votes'[x][Len(votes'[x])] = "up"}
-       IN IF Cardinality(UpVotes) >= threshold
+    /\ descriptors \subseteq Relays
+    /\ UNCHANGED <<consensus, keys, epoch>>
+    /\ votes' = [votes EXCEPT ![n] = @ \union {D}]
+    /\ LET MatchingVotes == {x \in DirAuthNodes : \E d \in votes'[x] : d = D}
+       IN IF Cardinality(MatchingVotes) >= Threshold
           THEN phase' = "Consensus"
           ELSE UNCHANGED phase
 
-VoteBad(n, m) ==
+ByzantineVote(dirauth_node, descriptor_set) ==
     /\ phase = "Vote"
-    /\ keys[n] /= "none"
-    /\ keys[m] /= "none"
-    /\ m /= n
-    /\ n \in BadActors
-    /\ UNCHANGED <<consensus, keys, descriptors, epoch>>
-    /\ votes' = [votes EXCEPT ![n] = Append(@, "down")]
-    /\ IF \A x \in DirAuthNodes : Len(votes'[x]) > 0 \/ votes'[x][Len(votes'[x])] = "down"
-            THEN phase' = "Consensus"
-       ELSE UNCHANGED phase
+    /\ keys[dirauth_node] /= "none"
+    /\ descriptor_set \subseteq Relays
+    /\ \E descriptor_set1, descriptor_set2 \in SUBSET descriptor_set:
+        /\ descriptor_set1 \subseteq descriptor_set
+        /\ descriptor_set2 \subseteq descriptor_set
+        /\ descriptor_set1 /= descriptor_set2
+        /\ \E m1, m2 \in DirAuthNodes \ {dirauth_node}:
+            /\ m1 /= m2
+            /\ votes' = [votes EXCEPT ![dirauth_node] = @ \union descriptor_set1, ![m1] = @ \union descriptor_set1, ![m2] = @ \union descriptor_set2]
+    /\ UNCHANGED <<consensus, keys, epoch, phase>>
 
-NoVote(n) ==
-    /\ phase = "Vote"
-    /\ keys[n] /= "none"
-    /\ UNCHANGED <<consensus, keys, descriptors, epoch>>
-    /\ votes' = [votes EXCEPT ![n] = Append(@, "no-vote")]
-    /\ IF \A x \in DirAuthNodes : Len(votes'[x]) > 0 \/ votes'[x][Len(votes'[x])] = "no-vote"
-        THEN phase' = "Consensus"
-        ELSE UNCHANGED phase
-
-Vote(n, m) ==
-    /\ VoteGood(n, m)
-    /\ VoteBad(n, m)
-    /\ NoVote(n)
-    /\ threshold = (Cardinality(DirAuthNodes) \div 2) + 1
+Vote(dirauth_node, descriptor_set) ==
+    \/ VoteOnDescriptorSet(dirauth_node, descriptor_set)
+    \/ ByzantineVote(dirauth_node, descriptor_set)
 
 IncreaseEpoch ==
     /\ \/ Consensus
        \/ FailedProtocolRound
        \/ FailedConsensus
     /\ epoch' = epoch + 1
-    /\ UNCHANGED <<threshold>>
 
 OtherActions ==
-    /\ threshold' = (Cardinality(DirAuthNodes \ BadActors) \div 2) + 1
     /\ \/ \E N \in SUBSET DirAuthNodes : N /= {} /\ \A n \in N : KeyGeneration(n)
        \/ \E N \in SUBSET DirAuthNodes, M \in SUBSET Relays : N /= {} /\ M /= {} /\ \A n \in N, m \in M : DescriptorCollection(n, m)
        \/ \E N \in SUBSET DirAuthNodes : N /= {} /\ \A n, m \in N : DescriptorExchange(n, m)
        \/ \E N \in SUBSET DirAuthNodes : N /= {} /\ \A n, m \in N : Vote(n, m)
-       \/ \E n \in DirAuthNodes : BecomeBadActor(n)
+       \/ \E n \in DirAuthNodes : BecomeUnreliableActor(n)
 
 Next ==
     /\ \/ IncreaseEpoch
@@ -148,41 +134,30 @@ Next ==
 
 PhaseInvariant == phase \in {"KeyGeneration", "DescriptorCollection", "DescriptorExchange", "Vote", "Consensus"}
 KeysInvariant == \A n \in DirAuthNodes : keys[n] \in {"none", "key"}
-VotesInvariant == \A n \in DirAuthNodes : \A v \in Seq({"up", "down"}) : v \subseteq votes[n]
-ConsensusInvariant == \A <<e, v>> \in consensus : v \in {"up", "down"}
 DescriptorsInvariant == \A n \in DirAuthNodes : descriptors[n] \subseteq Relays
-NoDoubleVoting == \A n \in DirAuthNodes : Len(votes[n]) <= 1
 ConsensusAgreement ==
     /\ phase = "Consensus"
-    => Cardinality({n \in DirAuthNodes : votes[n] = consensus}) >= threshold
-BadActorsCorrect ==
-    \A n \in BadActors : \E m \in DirAuthNodes \ {n} : \E v \in votes[n] : v = "down"
+    => Cardinality({n \in DirAuthNodes : votes[n] = consensus}) >= Threshold
     
 ReliabilityInvariant ==
     /\ phase = "Consensus"
     => consensus = [n \in DirAuthNodes |-> IF Len(votes[n]) > 0 THEN Head(votes[n]) ELSE "none"]
-
-IntegrityInvariant ==
-    /\ phase \in {"Vote", "Consensus"}
-    => \A n \in DirAuthNodes :
-        \A v \in votes[n] :
-            v \in {"up", "down"} /\ v \in UNION {descriptors[m] : m \in DirAuthNodes}
 
 DecentralizationInvariant ==
     /\ phase = "Consensus"
     => \A n \in DirAuthNodes : votes[n] = consensus
 
 AllKeyGenerationBeforeDescriptorCollection == 
-    <>[](\A n \in DirAuthNodes : phase[n] = "KeyGeneration") => <>(\A m \in DirAuthNodes : phase[m] = "DescriptorCollection")
+    [](\A n \in DirAuthNodes : phase[n] = "KeyGeneration") => <>(\A m \in DirAuthNodes : phase[m] = "DescriptorCollection")
 AllDescriptorCollectionBeforeDescriptorExchange == 
-    <>[](\A n \in DirAuthNodes : phase[n] = "DescriptorCollection") => <>(\A m \in DirAuthNodes : phase[m] = "DescriptorExchange")
+    [](\A n \in DirAuthNodes : phase[n] = "DescriptorCollection") => <>(\A m \in DirAuthNodes : phase[m] = "DescriptorExchange")
 AllDescriptorExchangeBeforeVote == 
-    <>[](\A n \in DirAuthNodes : phase[n] = "DescriptorExchange") => <>(\A m \in DirAuthNodes : phase[m] = "Vote")
+    [](\A n \in DirAuthNodes : phase[n] = "DescriptorExchange") => <>(\A m \in DirAuthNodes : phase[m] = "Vote")
 AllVoteBeforeConsensus == 
-    <>[](\A n \in DirAuthNodes : phase[n] = "Vote") => <>(\A m \in DirAuthNodes : phase[m] = "Consensus")
+    [](\A n \in DirAuthNodes : phase[n] = "Vote") => <>(\A m \in DirAuthNodes : phase[m] = "Consensus")
 
 NoSybilAttack ==
-    \A n \in DirAuthNodes : Len(descriptors[n]) <= threshold
+    \A n \in DirAuthNodes : Len(descriptors[n]) <= Threshold
 
 Liveness == []<>(phase = "Consensus")
 Progress == []<>(phase = "Consensus") ~> []<>(phase = "KeyGeneration")
@@ -194,19 +169,28 @@ EpochIncreaseInvariant == [][IncreaseEpoch]_epoch
 
 NoStarvation == \A n, m \in DirAuthNodes : WF_vars(Vote(n, m))
 
+VotesInvariant == \A n \in DirAuthNodes : \A v \in votes[n] : v \subseteq Relays
+
+NoLying1 ==
+    \A n \in DirAuthNodes : 
+        \A D1, D2 \in SUBSET Relays :
+            \A sets \in votes[n] :
+            sets /= {} /\ ~((D1 \in votes[n] /\ D2 \in votes[n]) /\ D1 /= D2)
+    
+NoLying2 ==
+    \A n \in DirAuthNodes :
+    \A D \in SUBSET Relays :
+    ~ByzantineVote(n, D)
+    
 Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
          /\ Liveness
          /\ Progress
          /\ PhaseInvariant
          /\ KeysInvariant
          /\ VotesInvariant
-         /\ ConsensusInvariant
          /\ DescriptorsInvariant
-         /\ NoDoubleVoting
          /\ ConsensusAgreement
-         /\ BadActorsCorrect
          /\ ReliabilityInvariant
-         /\ IntegrityInvariant
          /\ DecentralizationInvariant
          /\ AllKeyGenerationBeforeDescriptorCollection
          /\ AllDescriptorCollectionBeforeDescriptorExchange
@@ -217,6 +201,5 @@ Spec == Init /\ [][Next]_vars /\ WF_vars(Next)
          /\ AlwaysReturnToKeyGeneration
          /\ ConsensusLeadsToKeyGeneration
          /\ EpochIncreaseInvariant
-         
 
 =============================================================================
