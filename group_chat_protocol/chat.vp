@@ -1,0 +1,28 @@
+// Define the principal actors Alice, Bob, Tom and an active attacker Eve
+principal Alice [
+  knows private sharedKey
+  knows private aliceMessage
+]
+
+principal Bob [
+  knows private sharedKey
+]
+
+principal Tom [
+  knows private sharedKey
+]
+
+principal Eve [
+]
+
+// Alice encrypts a message using the shared key and sends it to Bob and Tom
+Alice -> Bob: ENC(sharedKey, aliceMessage)
+Alice -> Tom: ENC(sharedKey, aliceMessage)
+
+// Bob and Tom decrypt the message using the shared key
+Bob -> Bob: DEC(sharedKey, ENC(sharedKey, aliceMessage))
+Tom -> Tom: DEC(sharedKey, ENC(sharedKey, aliceMessage))
+
+// Query to verify if the active attacker Eve can learn the message
+query
+  ATTACKER_LEARNS(aliceMessage)
