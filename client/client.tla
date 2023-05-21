@@ -1,40 +1,27 @@
 ------------------------------- MODULE client -------------------------------
 
-EXTENDS Integers, TLC
+EXTENDS TLC
 
-VARIABLES state, connected, 
+VARIABLES state, eventChan
 
-vars == <<red, yellow, green>>
+vars == <<state, eventChan>>
 
-Init == /\ red = 1
-        /\ yellow = 0
-        /\ green = 0
+Init == /\ state = "unstarted"
+    	/\ eventChan = "run"
 
-Switch == /\ red = 1
-          /\ red' = 0
-          /\ green' = 1
-          /\ yellow' = yellow
-       \/ /\ green = 1
-          /\ green' = 0
-          /\ yellow' = 1
-          /\ red' = red
-       \/ /\ yellow = 1
-          /\ yellow' = 0
-          /\ red' = 1
-          /\ green' = green
-          
+Switch == /\ eventChan = "run"
+          /\ state = "unstarted"
+          /\ state' = "connecting"
+          /\ eventChan' = ""
+      \/  /\ eventChan = "send message"
+          /\ state = "connected"
+          /\ state' = "sending message"
+          /\ eventChan' = ""          
 Next == Switch          
 
 Spec == Init /\ [][Next]_vars /\ SF_vars(Next)
 
-TypeOK == /\ red \in {0,1}
-          /\ green \in {0,1}
-          /\ yellow \in {0,1} 
-
-OneLightOnly == red + yellow + green = 1
-
+TypeOK == /\ state \in {"unstarted", "connecting", "connected", "disconnected", "sending message", "receiving message"}
+          /\ eventChan \in {"run", "stop", "connect", "disconnect"}
 
 =============================================================================
-\* Modification History
-\* Last modified Thu May 18 19:23:12 EDT 2023 by human
-\* Created Thu May 18 18:48:50 EDT 2023 by human
