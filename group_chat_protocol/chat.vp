@@ -1,7 +1,15 @@
-// Define the principal actors Alice, Bob, Tom and an active attacker Eve
+
+attacker[active]
+
 principal Alice [
   knows private sharedKey
   knows private aliceMessage
+  generates ad
+  c1 = AEAD_ENC(sharedKey, aliceMessage, ad)
+]
+
+principal GroupChat [
+  knows private sharedKey
 ]
 
 principal Bob [
@@ -12,17 +20,21 @@ principal Tom [
   knows private sharedKey
 ]
 
-principal Eve [
+Alice -> GroupChat: c1, ad
+GroupChat -> Bob: c1, ad
+GroupChat -> Tom: c1, ad
+
+principal Bob [
+ bob_plaintext = AEAD_DEC(sharedKey, c1, ad)
 ]
 
-// Alice encrypts a message using the shared key and sends it to Bob and Tom
-Alice -> Bob: ENC(sharedKey, aliceMessage)
-Alice -> Tom: ENC(sharedKey, aliceMessage)
+principal Tom [
+ tom_plaintext = AEAD_DEC(sharedKey, c1, ad)
+]
 
-// Bob and Tom decrypt the message using the shared key
-Bob -> Bob: DEC(sharedKey, ENC(sharedKey, aliceMessage))
-Tom -> Tom: DEC(sharedKey, ENC(sharedKey, aliceMessage))
-
-// Query to verify if the active attacker Eve can learn the message
-query
-  ATTACKER_LEARNS(aliceMessage)
+queries[
+ confidentiality? aliceMessage
+ equivalence? bob_plaintext, tom_plaintext
+ authentication? GroupChat -> Bob: c1
+ authentication? GroupChat -> Tom: c1
+]
