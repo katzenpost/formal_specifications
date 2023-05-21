@@ -25,11 +25,11 @@ GroupChat -> Bob: c1, ad
 GroupChat -> Tom: c1, ad
 
 principal Bob [
- bob_plaintext = AEAD_DEC(sharedKey, c1, ad)
+ bob_plaintext = AEAD_DEC(sharedKey, c1, ad)?
 ]
 
 principal Tom [
- tom_plaintext = AEAD_DEC(sharedKey, c1, ad)
+ tom_plaintext = AEAD_DEC(sharedKey, c1, ad)?
 ]
 
 queries[
