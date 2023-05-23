@@ -2,26 +2,68 @@
 
 EXTENDS TLC
 
-VARIABLES state, eventChan
+VARIABLES state
 
-vars == <<state, eventChan>>
+vars == <<state>>
 
 Init == /\ state = "unstarted"
-    	/\ eventChan = "run"
 
-Switch == /\ eventChan = "run"
-          /\ state = "unstarted"
+Start == /\ state = "unstarted"
+         /\ state' = "connecting"
+
+Connect == /\ state = "connecting"
+           /\  \/ state' = "connected"
+               \/ state' = "disconnected"
+
+ConnectionFailure ==
+          /\ state = "disconnected"
           /\ state' = "connecting"
-          /\ eventChan' = ""
-      \/  /\ eventChan = "send message"
-          /\ state = "connected"
-          /\ state' = "sending message"
-          /\ eventChan' = ""          
-Next == Switch          
+
+FinalizeConnection ==
+         /\ state = "connected"
+         /\ state' = "idle"
+
+Idle ==   /\ state = "idle"
+          /\   \/ state' = "sending message"
+               \/ state' = "receiving message"
+               \/ state' = "get new pki doc"
+               \/ state' = "idle"
+
+Recv == /\ state = "receiving message"
+        /\ state' = "idle"
+
+Send ==  /\ state = "sending message"
+         /\ state' = "idle"
+
+UpdatePKIDoc ==
+         /\ state = "get new pki doc"
+         /\ state' = "update timers"
+
+UpdateTimers ==
+         /\ state = "update timers"
+         /\ state' = "idle"
+
+Next == \/ Start
+        \/ Connect
+        \/ ConnectionFailure
+        \/ FinalizeConnection
+        \/ Idle
+        \/ Recv
+        \/ Send
+        \/ UpdatePKIDoc
+        \/ UpdateTimers
 
 Spec == Init /\ [][Next]_vars /\ SF_vars(Next)
 
-TypeOK == /\ state \in {"unstarted", "connecting", "connected", "disconnected", "sending message", "receiving message"}
-          /\ eventChan \in {"run", "stop", "connect", "disconnect"}
+StateTypeOK == /\ state \in {
+                    "unstarted",
+                    "idle",
+                    "connecting",
+                    "connected",
+                    "disconnected",
+                    "sending message",
+                    "receiving message",
+                    "get new pki doc",
+                    "update timers"}
 
 =============================================================================
