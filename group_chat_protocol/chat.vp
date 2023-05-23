@@ -1,5 +1,5 @@
 
-attacker[active]
+attacker[passive]
 
 principal Alice [
   knows private sharedKey
