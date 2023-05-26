@@ -40,17 +40,16 @@ here's some example params:
 
 dirauth_nodes <-{"a1", "a2", "a3"}
 relays <- {"r1", "r2","r3"}
-max_epoch <- 5
 dirauth_min_num <- 3
 
 ------------------------------ MODULE dirauth ------------------------------
 
 EXTENDS Naturals, Sequences, TLC, FiniteSets
 
-CONSTANT dirauth_nodes, relays, max_epoch, dirauth_min_num
+CONSTANT dirauth_nodes, bad_actors, relays, dirauth_min_num
 
-VARIABLES phase, epoch, descriptors, votes, unreliable_actors, bad_actors
-vars == <<phase, epoch, descriptors, votes, unreliable_actors, bad_actors>>
+VARIABLES phase, descriptors, votes
+vars == <<phase, descriptors, votes>>
 
 ProtocolPhaseInvariant == phase \in {"Relay Key Generation",
                                      "Descriptor Collection",
@@ -60,75 +59,75 @@ ProtocolPhaseInvariant == phase \in {"Relay Key Generation",
                                      "Tabulate Votes",
                                      "Failed Consensus"}
 
-EpochInit  == epoch = 0
-EpochNext  ==  epoch' = IF epoch # max_epoch THEN epoch + 1 ELSE 0
-EpochClock  ==  EpochInit /\ [][EpochNext]_epoch
+Threshold == (Cardinality(dirauth_nodes) \div 2) + 1
 
-Threshold == (Cardinality(dirauth_nodes \ unreliable_actors) \div 2) + 1
+THEOREM ConsensusFailureWithBadActor ==
+    /\ \E n \in Nat:
+        /\ Cardinality(dirauth_nodes) = n
+        /\ Cardinality(bad_actors) = n-3
+    => <>[] (phase = "Failed Consensus")
 
 Init ==
-    /\ EpochInit
     /\ phase = "Relay Key Generation"
     /\ descriptors = [n \in dirauth_nodes |-> {}]
     /\ votes = [n \in dirauth_nodes |-> {}]
-    /\ unreliable_actors = {}
-    /\ bad_actors = {}
 
 RelayKeyGeneration ==
     /\ phase = "Relay Key Generation"
     /\ phase' = "Descriptor Collection"
-    /\ unreliable_actors' = {}
-    /\ bad_actors' = {}
     /\ votes' = [n \in dirauth_nodes |-> {}]
     /\ descriptors' = [n \in dirauth_nodes |-> {}]
-    /\ UNCHANGED <<epoch>>
+    /\ UNCHANGED <<>>
 
-(* All dirauth nodes (excluding unreliable actors) collect descriptors *)
 DescriptorCollection ==
     /\ phase = "Descriptor Collection"
-    /\ \E n \in dirauth_nodes \ unreliable_actors:
+    /\ \E n \in dirauth_nodes:
          \E m \in relays: 
             descriptors' = [descriptors EXCEPT ![n] = @ \union {m}]
-    /\ phase' = IF \E n \in dirauth_nodes \ unreliable_actors: \E m \in relays: m \notin descriptors[n]
+    /\ phase' = IF \E n \in dirauth_nodes: \E m \in relays: m \notin descriptors[n]
                 THEN "Descriptor Collection"
                 ELSE "Descriptor Exchange"
-    /\ UNCHANGED <<epoch, votes, unreliable_actors, bad_actors>>
+    /\ UNCHANGED <<votes>>
 
 DescriptorExchange ==
     /\ phase = "Descriptor Exchange"
-    /\ \E n1 \in dirauth_nodes \ unreliable_actors: 
-         \E n2 \in dirauth_nodes \ unreliable_actors: 
+    /\ \E n1 \in dirauth_nodes: 
+         \E n2 \in dirauth_nodes: 
             descriptors' = [descriptors EXCEPT ![n1] = @ \union descriptors[n2]]
-    /\ phase' = IF \E n \in dirauth_nodes \ unreliable_actors: 
-                    \E m \in dirauth_nodes \ unreliable_actors: 
-                        \E d \in descriptors[m]:
-                            d \notin descriptors[n]
+    /\ phase' = IF \A n \in dirauth_nodes: descriptors[n] # {}
                 THEN "Descriptor Exchange"
                 ELSE "Vote"
-    /\ UNCHANGED <<epoch, votes, unreliable_actors, bad_actors>>
+    /\ UNCHANGED <<votes>>
 
 NormalVote ==
     /\ phase = "Vote"
-    /\ \E n \in dirauth_nodes \ unreliable_actors:
-         \E m \in relays: 
-            votes' = [votes EXCEPT ![n] = @ \union {m}]
-    /\ phase' = IF \E n \in dirauth_nodes \ unreliable_actors: votes[n] # {}
+    /\ \E n1 \in dirauth_nodes:
+         \E n2 \in dirauth_nodes:
+         /\ n1 /= n2
+         /\ votes' = [votes EXCEPT ![n1] = @ \union descriptors[n2]]
+    /\ phase' = IF \A n \in dirauth_nodes: votes[n] # {}
+                THEN "Tabulate Votes"
+                ELSE "Vote"
+    /\ UNCHANGED <<descriptors>>
+
+ByzantineVote ==
+    /\ phase = "Vote"
+    /\ \E n1 \in dirauth_nodes:
+        /\ \E n2 \in dirauth_nodes:
+            /\ n1 /= n2
+            /\ \E descriptor_set1, descriptor_set2 \in SUBSET descriptors[n2]:
+                /\ descriptor_set1 /= descriptor_set2
+                /\ descriptor_set1 \subseteq descriptor_set2
+                /\ (votes' = [votes EXCEPT ![n1] = @ \union {descriptor_set1}]
+                    \/ votes' = [votes EXCEPT ![n1] = @ \union {descriptor_set2}])
+    /\ phase' = IF \A n \in dirauth_nodes: votes[n] # {}
                 THEN "Vote"
                 ELSE "Tabulate Votes"
-    /\ UNCHANGED <<epoch, descriptors, unreliable_actors, bad_actors>>
-
+    /\ UNCHANGED <<descriptors>>
 
 Vote ==
-    /\ phase = "Vote"
-    /\ IF \E n \in bad_actors
-       THEN ByzantineVote
-       ELSE NormalVote
-    /\ LET n == CHOOSE n \in dirauth_nodes \ unreliable_actors: TRUE
-       IN IF exists (x : votes[n] | x # {})
-          THEN phase' = "Vote"
-          ELSE phase' = "Tabulate Votes"
-    /\ UNCHANGED <<epoch, descriptors, unreliable_actors, bad_actors>> 
-
+    \/ NormalVote
+    \/ ByzantineVote
 
 TabulateVotes ==
     /\ phase = "Tabulate Votes"
@@ -137,19 +136,17 @@ TabulateVotes ==
        IN IF PossibleConsensus /= {} 
           THEN phase' = "Consensus"
           ELSE phase' = "Failed Consensus"
-    /\ UNCHANGED <<epoch, descriptors, votes, unreliable_actors, bad_actors>>
+    /\ UNCHANGED <<descriptors, votes>>
 
 Consensus ==
     /\ phase = "Consensus"
     /\ phase' = "Relay Key Generation"
-    /\ EpochNext
-    /\ UNCHANGED <<votes, descriptors, unreliable_actors, bad_actors>>
+    /\ UNCHANGED <<votes, descriptors>>
 
 FailedConsensus ==
     /\ phase = "Failed Consensus"
     /\ phase' = "Relay Key Generation"
-    /\ EpochNext
-    /\ UNCHANGED <<votes, descriptors, unreliable_actors, bad_actors>>
+    /\ UNCHANGED <<votes, descriptors>>
 
 ProtocolPhases ==
     /\  \/ RelayKeyGeneration
@@ -165,6 +162,6 @@ Next == ProtocolPhases
 Liveness == []<>(phase = "Consensus")
 Progress == []<>(phase = "Consensus") ~> []<>(phase = "Relay Key Generation")
 
-Spec == Init /\ [][Next]_vars /\ WF_vars(Next) /\ Liveness /\ Progress /\ EpochClock
+Spec == Init /\ [][Next]_vars /\ WF_vars(Next) /\ Liveness /\ Progress
 
 =============================================================================
