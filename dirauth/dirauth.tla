@@ -61,10 +61,9 @@ ProtocolPhaseInvariant == phase \in {"Relay Key Generation",
 
 Threshold == (Cardinality(dirauth_nodes) \div 2) + 1
 
-THEOREM ConsensusFailureWithBadActor ==
-    /\ \E n \in Nat:
-        /\ Cardinality(dirauth_nodes) = n
-        /\ Cardinality(bad_actors) = n-3
+ConsensusFailureWithBadActor ==
+    /\ LET N == {Cardinality(dirauth_nodes)}:
+        /\ Cardinality(bad_actors) = N-3
     => <>[] (phase = "Failed Consensus")
 
 Init ==
