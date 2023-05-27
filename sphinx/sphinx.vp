@@ -41,12 +41,12 @@ principal Alice[
 
     // first hop
     group_element1 = G^clientPrivKey
-    sharedSecret1 = clientPrivKey^mix1PubKey
+    sharedSecret1 = mix1PubKey^clientPrivKey
     integrity_key1, routing_info_key1, blinding_factor1, payload_key1 = HKDF(nil, sharedSecret1, nil)
     
     // second hop
-    sharedSecret2_tmp = clientPrivKey^mix2PubKey
-    sharedSecret2 = blinding_factor1^sharedSecret2_tmp
+    sharedSecret2_tmp = mix2PubKey^clientPrivKey
+    sharedSecret2 = sharedSecret2_tmp^blinding_factor1
     integrity_key2, routing_info_key2, blinding_factor2, payload_key2 = HKDF(nil, sharedSecret2, nil)
     group_element2 = group_element1^blinding_factor1
 
@@ -81,7 +81,6 @@ principal Alice[
     body1 = AEAD_ENC(payload_key1, body2, nil)
 ]
 
-// Alice send Sphinx packet to MixNode1
 Alice -> MixNode1: additional_data, group_element1, routing_info1, integrity_tag1, body1
 
 phase[1]
@@ -92,7 +91,6 @@ principal MixNode1[
 
     _ = ASSERT(integrity_tag1, MAC(mix1_routing_info_key, CONCAT(routing_info1, additional_data, group_element1)))
 
-    // decrypt the routing information block
     mix1_routing_cmds = DEC(mix1_routing_info_key, routing_info1)
     mix1_integrity_tag, mix1_mix2PubKey, mix1_routing_info = SPLIT(mix1_routing_cmds)
     mix1_group_element = group_element1^mix1_blinding_factor
@@ -110,7 +108,6 @@ principal MixNode2[
 
     _ = ASSERT(mix1_integrity_tag, MAC(mix2_routing_info_key, CONCAT(mix1_routing_info, additional_data, mix1_group_element)))
 
-    // decrypt the routing information block
     mix2_routing_cmds = DEC(mix2_routing_info_key, mix1_routing_info)
     mix2_integrity_tag, mix2_mix2PubKey, mix2_routing_info = SPLIT(mix2_routing_cmds)
     mix2_group_element = mix1_group_element^mix2_blinding_factor
