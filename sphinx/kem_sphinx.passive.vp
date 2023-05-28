@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: © 2023 David Stainton <dstainton415@gmail.com>
+// SPDX-License-Identifier: GPL-3.0-only
+
 attacker[passive]
 
 principal MixNode1[
@@ -176,10 +179,9 @@ queries[
     confidentiality? mix2_integrity_key
     confidentiality? mix3_integrity_key
 
-    // omg WTF. why fails?
+    // VerifPal raises a false positive here:
     //confidentiality? mix1_routing_cmds
     //confidentiality? mix2_routing_cmds
-
     // works fine, why?
     confidentiality? mix3_routing_cmds
 
@@ -195,4 +197,9 @@ queries[
     equivalence? shared_secret3, mix3_shared_secret
 
     equivalence? mix3_body, plaintext
+
+    unlinkability? kem_ciphertext1, mix1_kem_ciphertext, mix2_kem_ciphertext
+    unlinkability? routing_info1, mix1_routing_info, mix2_routing_info
+    unlinkability? integrity_tag1, mix1_integrity_tag, mix2_integrity_tag
+    unlinkability? body1, mix1_body, mix2_body
 ]
