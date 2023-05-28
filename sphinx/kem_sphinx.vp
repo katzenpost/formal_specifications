@@ -37,9 +37,9 @@ principal PKI[
     knows private pki_shared_secret
 ]
 
-MixNode1 -> PKI: [mix1_pubkey_ciphertext]
-MixNode2 -> PKI: [mix2_pubkey_ciphertext]
-MixNode3 -> PKI: [mix3_pubkey_ciphertext]
+MixNode1 -> PKI: mix1_pubkey_ciphertext
+MixNode2 -> PKI: mix2_pubkey_ciphertext
+MixNode3 -> PKI: mix3_pubkey_ciphertext
 
 principal PKI[
     pki_mix1_pubkey = AEAD_DEC(pki_shared_secret, mix1_pubkey_ciphertext, nil)
@@ -68,19 +68,19 @@ principal Alice[
     // generate the per hop secrets and KEM ciphertexts
 
     // first hop
-    generates sharedSecret1
-    kem_ciphertext1 = PKE_ENC(alice_mix1_pubkey, sharedSecret1)
-    integrity_key1, routing_info_key1, payload_key1 = HKDF(nil, sharedSecret1, nil)
+    generates shared_secret1
+    kem_ciphertext1 = PKE_ENC(alice_mix1_pubkey, shared_secret1)
+    integrity_key1, routing_info_key1, payload_key1 = HKDF(nil, shared_secret1, nil)
     
     // second hop
-    generates sharedSecret2
-    kem_ciphertext2 = PKE_ENC(alice_mix2_pubkey, sharedSecret2)
-    integrity_key2, routing_info_key2, payload_key2 = HKDF(nil, sharedSecret2, nil)
+    generates shared_secret2
+    kem_ciphertext2 = PKE_ENC(alice_mix2_pubkey, shared_secret2)
+    integrity_key2, routing_info_key2, payload_key2 = HKDF(nil, shared_secret2, nil)
 
     // third hop
-    generates sharedSecret3
-    kem_ciphertext3 = PKE_ENC(alice_mix3_pubkey, sharedSecret3)
-    integrity_key3, routing_info_key3, payload_key3 = HKDF(nil, sharedSecret3, nil)
+    generates shared_secret3
+    kem_ciphertext3 = PKE_ENC(alice_mix3_pubkey, shared_secret3)
+    integrity_key3, routing_info_key3, payload_key3 = HKDF(nil, shared_secret3, nil)
 
     // create the routing information block
 
@@ -170,6 +170,42 @@ queries[
     precondition[PKI->Alice: pki_doc_ciphertext]
     ]
 
+    authentication? Alice -> MixNode1: additional_data[
+    precondition[PKI->Alice: pki_doc_ciphertext]
+    ]
+
+    authentication? MixNode1 -> MixNode2: mix1_kem_ciphertext[
+    precondition[Alice->MixNode1: kem_ciphertext1]
+    ]
+
+    authentication? MixNode1 -> MixNode2: mix1_routing_info[
+    precondition[Alice->MixNode1: routing_info1]
+    ]
+
+    authentication? MixNode1 -> MixNode2: mix1_integrity_tag[
+    precondition[Alice->MixNode1: integrity_tag1]
+    ]
+
+    authentication? MixNode1 -> MixNode2: additional_data[
+    precondition[Alice->MixNode1: additional_data]
+    ]
+
+    authentication? MixNode2 -> MixNode3: mix2_kem_ciphertext[
+    precondition[MixNode1->MixNode2: mix1_kem_ciphertext]
+    ]
+
+    authentication? MixNode2 -> MixNode3: mix2_routing_info[
+    precondition[MixNode1->MixNode2: mix1_routing_info]
+    ]
+
+    authentication? MixNode2 -> MixNode3: mix2_integrity_tag[
+    precondition[MixNode1->MixNode2: mix1_integrity_tag]
+    ]
+
+    authentication? MixNode2 -> MixNode3: additional_data[
+    precondition[MixNode1->MixNode2: additional_data]
+    ]
+
     confidentiality? plaintext
 
     confidentiality? mix1_privkey
@@ -184,11 +220,11 @@ queries[
     confidentiality? mix2_integrity_key
     confidentiality? mix3_integrity_key
 
-    // omg WTF. fails
-    //confidentiality? mix1_routing_cmds
+    // omg WTF. why fails?
+    confidentiality? mix1_routing_cmds
     //confidentiality? mix2_routing_cmds
 
-    // works fine
+    // works fine, why?
     confidentiality? mix3_routing_cmds
 
     equivalence? routing_info2, mix1_routing_info
@@ -198,9 +234,9 @@ queries[
     equivalence? mix2_routing_cmds, routing_cmds2
     equivalence? mix3_routing_cmds, routing_cmds3
 
-    equivalence? sharedSecret1, mix1_shared_secret
-    equivalence? sharedSecret2, mix2_shared_secret
-    equivalence? sharedSecret3, mix3_shared_secret
+    equivalence? shared_secret1, mix1_shared_secret
+    equivalence? shared_secret2, mix2_shared_secret
+    equivalence? shared_secret3, mix3_shared_secret
 
     equivalence? mix3_body, plaintext
 ]
