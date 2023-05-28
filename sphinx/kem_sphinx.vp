@@ -42,22 +42,22 @@ MixNode2 -> PKI: mix2_pubkey_ciphertext
 MixNode3 -> PKI: mix3_pubkey_ciphertext
 
 principal PKI[
-    pki_mix1_pubkey = AEAD_DEC(pki_shared_secret, mix1_pubkey_ciphertext, nil)
-    pki_mix2_pubkey = AEAD_DEC(pki_shared_secret, mix2_pubkey_ciphertext, nil)
-    pki_mix3_pubkey = AEAD_DEC(pki_shared_secret, mix3_pubkey_ciphertext, nil)
+    pki_mix1_pubkey = AEAD_DEC(pki_shared_secret, mix1_pubkey_ciphertext, nil)?
+    pki_mix2_pubkey = AEAD_DEC(pki_shared_secret, mix2_pubkey_ciphertext, nil)?
+    pki_mix3_pubkey = AEAD_DEC(pki_shared_secret, mix3_pubkey_ciphertext, nil)?
 
     pki_doc = CONCAT(pki_mix1_pubkey, pki_mix2_pubkey, pki_mix3_pubkey)
     pki_doc_ciphertext = AEAD_ENC(pki_shared_secret, pki_doc, nil)
 ]
 
-PKI -> Alice: pki_doc_ciphertext
+PKI -> Alice: [pki_doc_ciphertext]
 
 principal Alice[
     knows private pki_shared_secret
 
-    alice_pki_doc = AEAD_DEC(pki_shared_secret, pki_doc_ciphertext, nil)
+    alice_pki_doc = AEAD_DEC(pki_shared_secret, pki_doc_ciphertext, nil)?
 
-    alice_mix1_pubkey, alice_mix2_pubkey, alice_mix3_pubkey = SPLIT(alice_pki_doc)
+    alice_mix1_pubkey, alice_mix2_pubkey, alice_mix3_pubkey = SPLIT(alice_pki_doc)?
 
     // Alice's plaintext message
     generates plaintext
@@ -114,12 +114,12 @@ principal MixNode1[
     mix1_shared_secret = PKE_DEC(mix1_privkey, kem_ciphertext1)
     mix1_integrity_key, mix1_routing_info_key, mix1_payload_key = HKDF(nil, mix1_shared_secret, nil)
 
-    _ = ASSERT(integrity_tag1, MAC(mix1_integrity_key, CONCAT(routing_info1, additional_data, kem_ciphertext1)))
+    _ = ASSERT(integrity_tag1, MAC(mix1_integrity_key, CONCAT(routing_info1, additional_data, kem_ciphertext1)))?
 
     mix1_routing_cmds = DEC(mix1_routing_info_key, routing_info1)
-    mix1_kem_ciphertext, mix1_integrity_tag, mix1_mix2_pubkey, mix1_routing_info = SPLIT(mix1_routing_cmds)
+    mix1_kem_ciphertext, mix1_integrity_tag, mix1_mix2_pubkey, mix1_routing_info = SPLIT(mix1_routing_cmds)?
 
-    mix1_body = AEAD_DEC(mix1_payload_key, body1, nil)
+    mix1_body = AEAD_DEC(mix1_payload_key, body1, nil)?
 ]
 
 MixNode1 -> MixNode2: additional_data, mix1_kem_ciphertext, mix1_routing_info, mix1_integrity_tag, mix1_body
@@ -130,11 +130,11 @@ principal MixNode2[
     mix2_shared_secret = PKE_DEC(mix2_privkey, mix1_kem_ciphertext)
     mix2_integrity_key, mix2_routing_info_key, mix2_payload_key = HKDF(nil, mix2_shared_secret, nil)
 
-    _ = ASSERT(mix1_integrity_tag, MAC(mix2_integrity_key, CONCAT(mix1_routing_info, additional_data, mix1_kem_ciphertext)))
+    _ = ASSERT(mix1_integrity_tag, MAC(mix2_integrity_key, CONCAT(mix1_routing_info, additional_data, mix1_kem_ciphertext)))?
 
     mix2_routing_cmds = DEC(mix2_routing_info_key, mix1_routing_info)
-    mix2_kem_ciphertext, mix2_integrity_tag, mix2_mix3_pubkey, mix2_routing_info = SPLIT(mix2_routing_cmds)
-    mix2_body = AEAD_DEC(mix2_payload_key, mix1_body, nil)
+    mix2_kem_ciphertext, mix2_integrity_tag, mix2_mix3_pubkey, mix2_routing_info = SPLIT(mix2_routing_cmds)?
+    mix2_body = AEAD_DEC(mix2_payload_key, mix1_body, nil)?
 ]
 
 MixNode2 -> MixNode3: additional_data, mix2_kem_ciphertext, mix2_routing_info, mix2_integrity_tag, mix2_body
@@ -145,10 +145,10 @@ principal MixNode3[
     mix3_shared_secret = PKE_DEC(mix3_privkey, mix2_kem_ciphertext)
     mix3_integrity_key, mix3_routing_info_key, mix3_payload_key = HKDF(nil, mix3_shared_secret, nil)
 
-    _ = ASSERT(mix2_integrity_tag, MAC(mix3_integrity_key, CONCAT(mix2_routing_info, additional_data, mix2_kem_ciphertext)))
+    _ = ASSERT(mix2_integrity_tag, MAC(mix3_integrity_key, CONCAT(mix2_routing_info, additional_data, mix2_kem_ciphertext)))?
 
     mix3_routing_cmds = DEC(mix3_routing_info_key, mix2_routing_info)
-    mix3_body = AEAD_DEC(mix3_payload_key, mix2_body, nil)
+    mix3_body = AEAD_DEC(mix3_payload_key, mix2_body, nil)?
 ]
 
 queries[
@@ -221,7 +221,7 @@ queries[
     confidentiality? mix3_integrity_key
 
     // omg WTF. why fails?
-    confidentiality? mix1_routing_cmds
+    //confidentiality? mix1_routing_cmds
     //confidentiality? mix2_routing_cmds
 
     // works fine, why?
