@@ -1,4 +1,4 @@
-attacker[passive]
+attacker[active]
 
 principal MixNode1[
     // mix's KEM key pair
@@ -157,11 +157,16 @@ queries[
     precondition[MixNode1->MixNode2: additional_data]
     ]
 
+
     confidentiality? plaintext
 
     confidentiality? mix1_privkey
     confidentiality? mix2_privkey
     confidentiality? mix3_privkey
+
+    confidentiality? shared_secret1
+    confidentiality? shared_secret2
+    confidentiality? shared_secret3
 
     confidentiality? mix1_shared_secret
     confidentiality? mix2_shared_secret
