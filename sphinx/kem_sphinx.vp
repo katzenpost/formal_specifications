@@ -4,8 +4,8 @@ principal MixNode1[
     knows private pki_shared_secret
 
     // mix's KEM key pair
-    generates mix1PrivKey
-    mix1_pubkey = G^mix1PrivKey
+    generates mix1_privkey
+    mix1_pubkey = G^mix1_privkey
     leaks mix1_pubkey // keys published via dirauth protocol
 
     mix1_pubkey_ciphertext = AEAD_ENC(pki_shared_secret, mix1_pubkey, nil)
@@ -15,8 +15,8 @@ principal MixNode2[
     knows private pki_shared_secret
 
     // mix's KEM key pair
-    generates mix2PrivKey
-    mix2_pubkey = G^mix2PrivKey
+    generates mix2_privkey
+    mix2_pubkey = G^mix2_privkey
     leaks mix2_pubkey // keys published via dirauth protocol
 
     mix2_pubkey_ciphertext = AEAD_ENC(pki_shared_secret, mix2_pubkey, nil)
@@ -26,8 +26,8 @@ principal MixNode3[
     knows private pki_shared_secret
 
     // mix's KEM key pair
-    generates mix3PrivKey
-    mix3_pubkey = G^mix3PrivKey
+    generates mix3_privkey
+    mix3_pubkey = G^mix3_privkey
     leaks mix3_pubkey // keys published via dirauth protocol
 
     mix3_pubkey_ciphertext = AEAD_ENC(pki_shared_secret, mix3_pubkey, nil)
@@ -37,9 +37,9 @@ principal PKI[
     knows private pki_shared_secret
 ]
 
-MixNode1 -> PKI: mix1_pubkey_ciphertext
-MixNode2 -> PKI: mix2_pubkey_ciphertext
-MixNode3 -> PKI: mix3_pubkey_ciphertext
+MixNode1 -> PKI: [mix1_pubkey_ciphertext]
+MixNode2 -> PKI: [mix2_pubkey_ciphertext]
+MixNode3 -> PKI: [mix3_pubkey_ciphertext]
 
 principal PKI[
     pki_mix1_pubkey = AEAD_DEC(pki_shared_secret, mix1_pubkey_ciphertext, nil)
@@ -111,10 +111,10 @@ Alice -> MixNode1: additional_data, kem_ciphertext1, routing_info1, integrity_ta
 phase[1]
 
 principal MixNode1[
-    mix1_shared_secret = PKE_DEC(mix1PrivKey, kem_ciphertext1)
+    mix1_shared_secret = PKE_DEC(mix1_privkey, kem_ciphertext1)
     mix1_integrity_key, mix1_routing_info_key, mix1_payload_key = HKDF(nil, mix1_shared_secret, nil)
 
-    _ = ASSERT(integrity_tag1, MAC(mix1_routing_info_key, CONCAT(routing_info1, additional_data, kem_ciphertext1)))
+    _ = ASSERT(integrity_tag1, MAC(mix1_integrity_key, CONCAT(routing_info1, additional_data, kem_ciphertext1)))
 
     mix1_routing_cmds = DEC(mix1_routing_info_key, routing_info1)
     mix1_kem_ciphertext, mix1_integrity_tag, mix1_mix2_pubkey, mix1_routing_info = SPLIT(mix1_routing_cmds)
@@ -127,10 +127,10 @@ MixNode1 -> MixNode2: additional_data, mix1_kem_ciphertext, mix1_routing_info, m
 phase[2]
 
 principal MixNode2[
-    mix2_shared_secret = PKE_DEC(mix2PrivKey, mix1_kem_ciphertext)
+    mix2_shared_secret = PKE_DEC(mix2_privkey, mix1_kem_ciphertext)
     mix2_integrity_key, mix2_routing_info_key, mix2_payload_key = HKDF(nil, mix2_shared_secret, nil)
 
-    _ = ASSERT(mix1_integrity_tag, MAC(mix2_routing_info_key, CONCAT(mix1_routing_info, additional_data, mix1_kem_ciphertext)))
+    _ = ASSERT(mix1_integrity_tag, MAC(mix2_integrity_key, CONCAT(mix1_routing_info, additional_data, mix1_kem_ciphertext)))
 
     mix2_routing_cmds = DEC(mix2_routing_info_key, mix1_routing_info)
     mix2_kem_ciphertext, mix2_integrity_tag, mix2_mix3_pubkey, mix2_routing_info = SPLIT(mix2_routing_cmds)
@@ -142,17 +142,16 @@ MixNode2 -> MixNode3: additional_data, mix2_kem_ciphertext, mix2_routing_info, m
 phase[3]
 
 principal MixNode3[
-    mix3_shared_secret = PKE_DEC(mix3PrivKey, mix2_kem_ciphertext)
+    mix3_shared_secret = PKE_DEC(mix3_privkey, mix2_kem_ciphertext)
     mix3_integrity_key, mix3_routing_info_key, mix3_payload_key = HKDF(nil, mix3_shared_secret, nil)
 
-    _ = ASSERT(mix2_integrity_tag, MAC(mix3_routing_info_key, CONCAT(mix2_routing_info, additional_data, mix2_kem_ciphertext)))
+    _ = ASSERT(mix2_integrity_tag, MAC(mix3_integrity_key, CONCAT(mix2_routing_info, additional_data, mix2_kem_ciphertext)))
 
     mix3_routing_cmds = DEC(mix3_routing_info_key, mix2_routing_info)
     mix3_body = AEAD_DEC(mix3_payload_key, mix2_body, nil)
 ]
 
 queries[
-
     authentication? PKI -> Alice: pki_doc_ciphertext[
     precondition[MixNode1->PKI: mix1_pubkey_ciphertext]
     precondition[MixNode2->PKI: mix2_pubkey_ciphertext]
@@ -173,9 +172,9 @@ queries[
 
     confidentiality? plaintext
 
-    confidentiality? mix1PrivKey
-    confidentiality? mix2PrivKey
-    confidentiality? mix3PrivKey
+    confidentiality? mix1_privkey
+    confidentiality? mix2_privkey
+    confidentiality? mix3_privkey
 
     confidentiality? mix1_shared_secret
     confidentiality? mix2_shared_secret
@@ -185,10 +184,12 @@ queries[
     confidentiality? mix2_integrity_key
     confidentiality? mix3_integrity_key
 
-    // omg WTF
-    confidentiality? mix1_routing_cmds
+    // omg WTF. fails
+    //confidentiality? mix1_routing_cmds
     //confidentiality? mix2_routing_cmds
-    //confidentiality? mix3_routing_cmds
+
+    // works fine
+    confidentiality? mix3_routing_cmds
 
     equivalence? routing_info2, mix1_routing_info
     equivalence? routing_info3, mix2_routing_info
