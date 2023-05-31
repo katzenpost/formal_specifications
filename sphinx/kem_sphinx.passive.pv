@@ -1,0 +1,243 @@
+(*
+    KEM Sphinx Cryptographic Packet format
+
+    This specification is based on the paper:
+
+    Sphinx: A Compact and Provably Secure Mix Format
+    https://cypherpunks.ca/~iang/pubs/Sphinx_Oakland09.pdf
+
+    Here we sacrifice the compactness of the original Sphinx packet format
+    for the speed of using a KEM and performing only one public key
+    operations per hop.
+
+    Here we aren't modeling the Sphinx header's routing information
+    block with it's complicated XOR'd padded structure. Instead we
+    simplify our model and we encrypt the routing info block without
+    any padding. This is a simplification that doesn't affect the security
+    properties but in a real implementation the padding would be necessary
+    to prevent the packet from changing in length as it traverses the network.
+
+    That having been said, I'm open to the possibility that with some hard
+    work and some brains we could figure out how to model the padding with
+    ProVerif.
+*)
+
+(* ---------------------------------------------------------------- *)
+(* PARAMETERS                                                       *)
+(* ---------------------------------------------------------------- *)
+
+set traceBacktracking = false.
+set reconstructTrace = false.
+set attacker = passive.
+
+(* ---------------------------------------------------------------- *)
+(* TYPES                                                            *)
+(* ---------------------------------------------------------------- *)
+
+type Principal.
+type SphinxPacket.
+type KDF_Output.
+type IntegrityTag.
+
+type StreamKey.
+type PayloadKey.
+type MacKey.
+type PublicKey.
+type PrivateKey.
+type SPRP_Key.
+
+
+(* Events *)
+
+event IntegrityCheckFailed(Principal).
+event ReceivedFinalPayload(bitstring).
+
+(* ---------------------------------------------------------------- *)
+(* CONSTANTS                                                        *)
+(* ---------------------------------------------------------------- *)
+const zero:bitstring  [data].
+const mix1:Principal  [data].
+const mix2:Principal  [data].
+
+(* ---------------------------------------------------------------- *)
+(* CHANNELS                                                         *)
+(* ---------------------------------------------------------------- *)
+
+const pub_chan:channel.
+
+const pubkey_mix1_chan:channel.
+const pubkey_mix2_chan:channel.
+const privkey_mix1_chan:channel.
+const privkey_mix2_chan:channel.
+
+(* ---------------------------------------------------------------- *)
+(* PRIMITIVES                                                       *)
+(* ---------------------------------------------------------------- *)
+
+(* Key Encapsulation Mechanism*)
+fun encapsulate(PublicKey, bitstring):bitstring.
+fun kem_shared_secret(bitstring):bitstring.
+fun kem_ciphertext(bitstring):bitstring.
+fun decapsulate(PrivateKey,bitstring):bitstring.
+fun to_PublicKey(PrivateKey):PublicKey.
+
+equation forall privkey:PrivateKey, r:bitstring;
+decapsulate(privkey,kem_ciphertext(encapsulate(to_PublicKey(privkey),r))) =
+    kem_shared_secret(encapsulate(to_PublicKey(privkey),r)).
+
+fun from_PublicKey(PublicKey):bitstring.
+
+fun to_sprp_key(bitstring):SPRP_Key.
+fun sprp_encrypt(SPRP_Key, bitstring):bitstring.
+reduc forall k:SPRP_Key, p:bitstring;
+    sprp_decrypt(k, sprp_encrypt(k, p)) = p.
+
+fun pub_key(Principal): PublicKey.
+
+fun hash(bitstring, bitstring):bitstring.
+
+fun integrity_tag_to_bitstring(IntegrityTag):bitstring.
+fun to_mac_key(bitstring):MacKey.
+fun mac(MacKey, bitstring): IntegrityTag.
+fun verify_mac(MacKey, bitstring, IntegrityTag):bool reduc
+    forall k:MacKey, my_plaintext:bitstring, t:IntegrityTag;
+        verify_mac(k, my_plaintext, mac(k, my_plaintext)) = true.
+
+fun pack_kdf_output(bitstring, bitstring, bitstring):KDF_Output.
+reduc forall ik:bitstring, rik:bitstring, to_PublicKeyey:bitstring;
+    unpack_kdf_output(pack_kdf_output(ik, rik, to_PublicKeyey)) = (ik, rik, to_PublicKeyey).
+fun kdf(bitstring):KDF_Output.
+
+fun to_stream_key(bitstring):StreamKey.
+fun stream_cipher(StreamKey, bitstring): bitstring.
+reduc forall k:StreamKey, input_data:bitstring;
+  stream_cipher_decrypt(k, stream_cipher(k, input_data)) = input_data.
+
+fun pack_routing_commands(bitstring, bitstring, bitstring, bitstring):bitstring.
+reduc forall my_kem_ciphertext:bitstring, my_IntegrityTag:bitstring, pubkey:bitstring, routing_info:bitstring;
+    unpack_routing_commands(pack_routing_commands(my_kem_ciphertext, my_IntegrityTag, pubkey, routing_info)) = (my_kem_ciphertext, my_IntegrityTag, pubkey, routing_info).
+
+(*
+    A sphinx packet is a 4-tuple of the form:
+    (KEM ciphertext, routing info, integrity tag, payload)
+*)
+fun pack_sphinx_packet(bitstring, bitstring, bitstring, bitstring): SphinxPacket.
+reduc forall my_kem_ciphertext:bitstring, routing_info:bitstring, my_IntegrityTag:bitstring, body:bitstring;
+    unpack_sphinx_packet(pack_sphinx_packet(my_kem_ciphertext, routing_info, my_IntegrityTag, body)) = (my_kem_ciphertext, routing_info, my_IntegrityTag, body).
+
+(* ---------------------------------------------------------------- *)
+(* Client side                                                      *)
+(* ---------------------------------------------------------------- *)
+
+letfun create_sphinx_packet(mix1_pubkey:PublicKey, mix2_pubkey:PublicKey, seed:bitstring, plaintext:bitstring) =
+
+    (* generate the per hop secrets and KEM ciphertexts *)
+    
+    (* first hop *)
+    (* generate the per hop secrets and KEM ciphertexts *)
+    
+    (* first hop *)
+    let encapsulation1 = encapsulate(mix1_pubkey, seed) in
+    let shared_secret1 = kem_shared_secret(encapsulation1) in
+    let kem_ciphertext1 = kem_ciphertext(encapsulation1) in
+    let (integrity_key1:bitstring, routing_info_key1:bitstring, PayloadKey1:bitstring) = unpack_kdf_output(
+        kdf(shared_secret1)) in
+    
+    (* last hop *)
+    let encapsulation2 = encapsulate(mix2_pubkey, seed) in
+    let shared_secret2 = kem_shared_secret(encapsulation2) in
+    let kem_ciphertext2 = kem_ciphertext(encapsulation2) in
+    let (integrity_key2:bitstring, routing_info_key2:bitstring, PayloadKey2:bitstring) = unpack_kdf_output(kdf(shared_secret2)) in
+
+    (* create the routing info block starting with last hop *)
+
+    (* last hop *)
+    let routing_cmds2 = zero in
+    let routing_info2 = stream_cipher(to_stream_key(routing_info_key2), routing_cmds2) in
+    let IntegrityTag2 = mac(to_mac_key(integrity_key2), routing_info2) in
+
+    (* first hop *)
+    let routing_cmds1 = pack_routing_commands(kem_ciphertext2, integrity_tag_to_bitstring(IntegrityTag2), from_PublicKey(mix2_pubkey), routing_info2) in
+    let routing_info1 = stream_cipher(to_stream_key(routing_info_key1), routing_cmds1) in
+    let IntegrityTag1 = mac(to_mac_key(integrity_key1), routing_info1) in
+
+    (* create the payload *)
+    let payload2 = sprp_encrypt(to_sprp_key(PayloadKey2), plaintext) in
+    let payload1 = sprp_encrypt(to_sprp_key(PayloadKey1), payload2) in
+
+    pack_sphinx_packet(kem_ciphertext1, routing_info1, integrity_tag_to_bitstring(IntegrityTag1), payload1).
+
+let client_send_process() = 
+    in(pubkey_mix1_chan, mix1_pubkey:PublicKey);
+    in(pubkey_mix2_chan, mix2_pubkey:PublicKey);
+    new r:bitstring;
+    new client_plaintext:bitstring;
+    let packet = create_sphinx_packet(mix1_pubkey, mix2_pubkey, r, client_plaintext) in
+    out(pub_chan, packet).
+
+(* ---------------------------------------------------------------- *)
+(* Server side                                                      *)
+(* ---------------------------------------------------------------- *)
+
+(* Mix1 generates its keypair *)
+let mix1_gen_keypair() =
+    new mix1_privkey: PrivateKey;
+    let mix1_pubkey = to_PublicKey(mix1_privkey) in 
+    out(privkey_mix1_chan, mix1_privkey);
+    out(pubkey_mix1_chan, mix1_pubkey).
+
+(* Mix2 generates its keypair *)
+let mix2_gen_keypair() =
+    new mix2_privkey: PrivateKey;
+    let mix2_pubkey = to_PublicKey(mix2_privkey) in 
+    out(privkey_mix2_chan, mix2_privkey);
+    out(pubkey_mix2_chan, mix2_pubkey).
+
+let mix1_process() =
+    in(privkey_mix1_chan, mix1_privkey:PrivateKey);
+    in(pub_chan, packet:SphinxPacket);
+    let (my_kem_ciphertext:bitstring, routing_info:bitstring, my_IntegrityTag:bitstring, my_payload:bitstring) = unpack_sphinx_packet(packet) in
+    let shared_secret = decapsulate(mix1_privkey, my_kem_ciphertext) in
+    let (my_integrity_key:bitstring, routing_info_key1:bitstring, PayloadKey1:bitstring) = unpack_kdf_output(kdf(shared_secret)) in
+    let my_IntegrityTag' = mac(to_mac_key(my_integrity_key), routing_info) in
+    if my_IntegrityTag = integrity_tag_to_bitstring(my_IntegrityTag') then
+        let routing_cmds = stream_cipher_decrypt(to_stream_key(routing_info_key1), routing_info) in
+        let (kem2_ciphertext:bitstring, IntegrityTag2:bitstring, mix2_pubkey:bitstring, routing_info2:bitstring) = unpack_routing_commands(routing_cmds) in
+        let next_payload = sprp_decrypt(to_sprp_key(PayloadKey1), my_payload) in
+        out(pub_chan, pack_sphinx_packet(kem2_ciphertext, routing_info2, my_IntegrityTag, next_payload))
+    else
+        event IntegrityCheckFailed(mix1).
+
+let mix2_process() =
+    in(privkey_mix2_chan, mix2_privkey:PrivateKey);
+    in(pub_chan, packet:SphinxPacket);
+    let (my_kem_ciphertext:bitstring, routing_info:bitstring, my_IntegrityTag:bitstring, my_payload:bitstring) = unpack_sphinx_packet(packet) in
+    let shared_secret = decapsulate(mix2_privkey, my_kem_ciphertext) in
+    let (my_integrity_key:bitstring, my_routing_info_key:bitstring, my_PayloadKey:bitstring) = unpack_kdf_output(kdf(shared_secret)) in
+    let IntegrityTag' = mac(to_mac_key(my_integrity_key), routing_info) in
+    if my_IntegrityTag = integrity_tag_to_bitstring(IntegrityTag') then
+        let routing_cmds = stream_cipher_decrypt(to_stream_key(my_routing_info_key), routing_info) in
+        let final_payload = sprp_decrypt(to_sprp_key(my_PayloadKey), my_payload) in
+        event ReceivedFinalPayload(final_payload)
+    else
+        event IntegrityCheckFailed(mix2).
+
+
+(* ---------------------------------------------------------------- *)
+(* QUERIES                                                          *)
+(* ---------------------------------------------------------------- *)
+
+query c:Principal;
+        event(IntegrityCheckFailed(c)).
+
+query payload:bitstring; 
+    event(ReceivedFinalPayload(payload)).
+
+process
+    (
+      mix1_gen_keypair() 
+      | mix2_gen_keypair()
+      | !mix1_process()
+      | !mix2_process()
+      | client_send_process()
+    )
