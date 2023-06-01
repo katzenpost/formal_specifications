@@ -16,14 +16,10 @@
     any padding. This is a simplification that doesn't affect the security
     properties but in a real implementation the padding would be necessary
     to prevent the packet from changing in length as it traverses the network.
-
-    That having been said, I'm open to the possibility that with some hard
-    work and some brains we could figure out how to model the padding with
-    ProVerif.
 *)
 
 (* ---------------------------------------------------------------- *)
-(* PARAMETERS                                                       *)
+(* Parameters                                                       *)
 (* ---------------------------------------------------------------- *)
 
 set traceBacktracking = false.
@@ -31,9 +27,9 @@ set reconstructTrace = false.
 set attacker = passive.
 
 (* ---------------------------------------------------------------- *)
-(* TYPES                                                            *)
+(* Types                                                            *)
 (* ---------------------------------------------------------------- *)
-
+type Signal.
 type Principal.
 type SphinxPacket.
 type KDF_Output.
@@ -46,32 +42,42 @@ type PublicKey.
 type PrivateKey.
 type SPRP_Key.
 
-
 (* Events *)
 
 event IntegrityCheckFailed(Principal).
 event ReceivedFinalPayload(bitstring).
+event Mix1ReceivedSphinxPacket(SphinxPacket).
+event Mix1GeneratedKeyPair(PrivateKey).
+event Mix2GeneratedKeyPair(PrivateKey).
+event ClientReceivedAllKeys(bitstring).
+event ClientCreatedPacket(SphinxPacket).
 
 (* ---------------------------------------------------------------- *)
-(* CONSTANTS                                                        *)
+(* Constants                                                        *)
 (* ---------------------------------------------------------------- *)
 const zero:bitstring  [data].
 const mix1:Principal  [data].
 const mix2:Principal  [data].
+const ready:Signal.
 
 (* ---------------------------------------------------------------- *)
-(* CHANNELS                                                         *)
+(* Channels                                                         *)
 (* ---------------------------------------------------------------- *)
 
-const pub_chan:channel.
+const pubkey_mix1_chan:channel [private].
+const pubkey_mix2_chan:channel [private].
 
-const pubkey_mix1_chan:channel.
-const pubkey_mix2_chan:channel.
-const privkey_mix1_chan:channel.
-const privkey_mix2_chan:channel.
+const privkey_mix1_chan:channel [private].
+const privkey_mix2_chan:channel [private].
+
+const mix1_ready_chan: channel [private].
+const mix2_ready_chan: channel [private].
+
+free mix1_read_chan: channel.
+free mix2_read_chan: channel.
 
 (* ---------------------------------------------------------------- *)
-(* PRIMITIVES                                                       *)
+(* Cryptographic Primitives                                         *)
 (* ---------------------------------------------------------------- *)
 
 (* Key Encapsulation Mechanism*)
@@ -93,8 +99,6 @@ reduc forall k:SPRP_Key, p:bitstring;
     sprp_decrypt(k, sprp_encrypt(k, p)) = p.
 
 fun pub_key(Principal): PublicKey.
-
-fun hash(bitstring, bitstring):bitstring.
 
 fun integrity_tag_to_bitstring(IntegrityTag):bitstring.
 fun to_mac_key(bitstring):MacKey.
@@ -142,7 +146,7 @@ letfun create_sphinx_packet(mix1_pubkey:PublicKey, mix2_pubkey:PublicKey, seed:b
     let kem_ciphertext1 = kem_ciphertext(encapsulation1) in
     let (integrity_key1:bitstring, routing_info_key1:bitstring, PayloadKey1:bitstring) = unpack_kdf_output(
         kdf(shared_secret1)) in
-    
+
     (* last hop *)
     let encapsulation2 = encapsulate(mix2_pubkey, seed) in
     let shared_secret2 = kem_shared_secret(encapsulation2) in
@@ -170,10 +174,14 @@ letfun create_sphinx_packet(mix1_pubkey:PublicKey, mix2_pubkey:PublicKey, seed:b
 let client_send_process() = 
     in(pubkey_mix1_chan, mix1_pubkey:PublicKey);
     in(pubkey_mix2_chan, mix2_pubkey:PublicKey);
+    in(mix1_ready_chan, signal1:Signal);
+    in(mix2_ready_chan, signal2:Signal);
     new r:bitstring;
     new client_plaintext:bitstring;
+    event ClientReceivedAllKeys(zero);
     let packet = create_sphinx_packet(mix1_pubkey, mix2_pubkey, r, client_plaintext) in
-    out(pub_chan, packet).
+    event ClientCreatedPacket(packet);
+    out(mix1_read_chan, packet).
 
 (* ---------------------------------------------------------------- *)
 (* Server side                                                      *)
@@ -182,20 +190,26 @@ let client_send_process() =
 (* Mix1 generates its keypair *)
 let mix1_gen_keypair() =
     new mix1_privkey: PrivateKey;
-    let mix1_pubkey = to_PublicKey(mix1_privkey) in 
+    event Mix1GeneratedKeyPair(mix1_privkey);
+    let mix1_pubkey = to_PublicKey(mix1_privkey) in
     out(privkey_mix1_chan, mix1_privkey);
-    out(pubkey_mix1_chan, mix1_pubkey).
+    out(pubkey_mix1_chan, mix1_pubkey);
+    out(mix1_ready_chan, ready);
+    event Mix1GeneratedKeyPair(mix1_privkey).
 
 (* Mix2 generates its keypair *)
 let mix2_gen_keypair() =
     new mix2_privkey: PrivateKey;
     let mix2_pubkey = to_PublicKey(mix2_privkey) in 
     out(privkey_mix2_chan, mix2_privkey);
-    out(pubkey_mix2_chan, mix2_pubkey).
+    out(pubkey_mix2_chan, mix2_pubkey);
+    out(mix2_ready_chan, ready);
+    event Mix2GeneratedKeyPair(mix2_privkey).
 
 let mix1_process() =
     in(privkey_mix1_chan, mix1_privkey:PrivateKey);
-    in(pub_chan, packet:SphinxPacket);
+    in(mix1_read_chan, packet:SphinxPacket);
+    event Mix1ReceivedSphinxPacket(packet);
     let (my_kem_ciphertext:bitstring, routing_info:bitstring, my_IntegrityTag:bitstring, my_payload:bitstring) = unpack_sphinx_packet(packet) in
     let shared_secret = decapsulate(mix1_privkey, my_kem_ciphertext) in
     let (my_integrity_key:bitstring, routing_info_key1:bitstring, PayloadKey1:bitstring) = unpack_kdf_output(kdf(shared_secret)) in
@@ -204,13 +218,13 @@ let mix1_process() =
         let routing_cmds = stream_cipher_decrypt(to_stream_key(routing_info_key1), routing_info) in
         let (kem2_ciphertext:bitstring, IntegrityTag2:bitstring, mix2_pubkey:bitstring, routing_info2:bitstring) = unpack_routing_commands(routing_cmds) in
         let next_payload = sprp_decrypt(to_sprp_key(PayloadKey1), my_payload) in
-        out(pub_chan, pack_sphinx_packet(kem2_ciphertext, routing_info2, my_IntegrityTag, next_payload))
+        out(mix2_read_chan, pack_sphinx_packet(kem2_ciphertext, routing_info2, my_IntegrityTag, next_payload))
     else
         event IntegrityCheckFailed(mix1).
 
 let mix2_process() =
     in(privkey_mix2_chan, mix2_privkey:PrivateKey);
-    in(pub_chan, packet:SphinxPacket);
+    in(mix2_read_chan, packet:SphinxPacket);
     let (my_kem_ciphertext:bitstring, routing_info:bitstring, my_IntegrityTag:bitstring, my_payload:bitstring) = unpack_sphinx_packet(packet) in
     let shared_secret = decapsulate(mix2_privkey, my_kem_ciphertext) in
     let (my_integrity_key:bitstring, my_routing_info_key:bitstring, my_PayloadKey:bitstring) = unpack_kdf_output(kdf(shared_secret)) in
@@ -224,14 +238,29 @@ let mix2_process() =
 
 
 (* ---------------------------------------------------------------- *)
-(* QUERIES                                                          *)
+(* Queries                                                          *)
 (* ---------------------------------------------------------------- *)
 
 query c:Principal;
-        event(IntegrityCheckFailed(c)).
+    event(IntegrityCheckFailed(c)).
 
 query payload:bitstring; 
     event(ReceivedFinalPayload(payload)).
+
+query packet:SphinxPacket;
+    event(Mix1ReceivedSphinxPacket(packet)).
+
+query privkey:PrivateKey;
+    event(Mix1GeneratedKeyPair(privkey)).
+
+query privkey:PrivateKey;
+    event(Mix2GeneratedKeyPair(privkey)).
+
+query b:bitstring;
+    event(ClientReceivedAllKeys(b)).
+
+query packet:SphinxPacket;
+    event(ClientCreatedPacket(packet)).
 
 process
     (
