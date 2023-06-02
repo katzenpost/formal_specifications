@@ -382,7 +382,7 @@ letfun readMessage_e(me:principal, them:principal, hs:handshakestate, message:bi
 	if ((valid1 && valid2)) then (
 		let hs = handshakestatepack(ss, s, e, rs, re, psk, initiator) in
 		(hs, plaintext, true)
-	).
+	)
 
 (* ---------------------------------------------------------------- *)
 (* CHANNELS                                                         *)
