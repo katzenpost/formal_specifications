@@ -33,7 +33,6 @@ type Signal.
 type Principal.
 type SphinxPacket.
 type KDF_Output.
-type IntegrityTag.
 
 type StreamKey.
 type PayloadKey.
@@ -44,6 +43,7 @@ type SPRP_Key.
 
 (* Events *)
 event Meow().
+event Woof().
 event Mix1SharedSecretCorrect().
 event Mix1SharedSecretIncorrect().
 event Mix2SharedSecretCorrect().
@@ -110,11 +110,10 @@ reduc forall k:SPRP_Key, p:bitstring;
 
 fun pub_key(Principal): PublicKey.
 
-fun integrity_tag_to_bitstring(IntegrityTag):bitstring.
 fun to_mac_key(bitstring):MacKey.
-fun mac(MacKey, bitstring): IntegrityTag.
-fun verify_mac(MacKey, bitstring, IntegrityTag):bool reduc
-    forall k:MacKey, my_plaintext:bitstring, t:IntegrityTag;
+fun mac(MacKey, bitstring): bitstring.
+fun verify_mac(MacKey, bitstring, bitstring):bool reduc
+    forall k:MacKey, my_plaintext:bitstring, t:bitstring;
         verify_mac(k, my_plaintext, mac(k, my_plaintext)) = true.
 
 fun pack_kdf_output(bitstring, bitstring, bitstring):KDF_Output.
@@ -140,14 +139,14 @@ fun routing_commands_to_integrity_tag(bitstring):bitstring.
 fun routing_commands_to_pubkey(bitstring):bitstring.
 fun routing_commands_to_routing_info(bitstring):bitstring.
 fun pack_routing_commands(bitstring, bitstring, bitstring, bitstring):bitstring.
-equation forall my_kem_ciphertext:bitstring, my_IntegrityTag:bitstring, pubkey:bitstring, routing_info:bitstring;
-    routing_commands_to_kem_ciphertext(pack_routing_commands(my_kem_ciphertext, my_IntegrityTag, pubkey, routing_info)) = my_kem_ciphertext.
-equation forall my_kem_ciphertext:bitstring, my_IntegrityTag:bitstring, pubkey:bitstring, routing_info:bitstring;
-    routing_commands_to_integrity_tag(pack_routing_commands(my_kem_ciphertext, my_IntegrityTag, pubkey, routing_info)) = my_IntegrityTag.
-equation forall my_kem_ciphertext:bitstring, my_IntegrityTag:bitstring, pubkey:bitstring, routing_info:bitstring;
-    routing_commands_to_pubkey(pack_routing_commands(my_kem_ciphertext, my_IntegrityTag, pubkey, routing_info)) = pubkey.
-equation forall my_kem_ciphertext:bitstring, my_IntegrityTag:bitstring, pubkey:bitstring, routing_info:bitstring;
-    routing_commands_to_routing_info(pack_routing_commands(my_kem_ciphertext, my_IntegrityTag, pubkey, routing_info)) = routing_info.
+equation forall my_kem_ciphertext:bitstring, my_integrity_tag:bitstring, pubkey:bitstring, routing_info:bitstring;
+    routing_commands_to_kem_ciphertext(pack_routing_commands(my_kem_ciphertext, my_integrity_tag, pubkey, routing_info)) = my_kem_ciphertext.
+equation forall my_kem_ciphertext:bitstring, my_integrity_tag:bitstring, pubkey:bitstring, routing_info:bitstring;
+    routing_commands_to_integrity_tag(pack_routing_commands(my_kem_ciphertext, my_integrity_tag, pubkey, routing_info)) = my_integrity_tag.
+equation forall my_kem_ciphertext:bitstring, my_integrity_tag:bitstring, pubkey:bitstring, routing_info:bitstring;
+    routing_commands_to_pubkey(pack_routing_commands(my_kem_ciphertext, my_integrity_tag, pubkey, routing_info)) = pubkey.
+equation forall my_kem_ciphertext:bitstring, my_integrity_tag:bitstring, pubkey:bitstring, routing_info:bitstring;
+    routing_commands_to_routing_info(pack_routing_commands(my_kem_ciphertext, my_integrity_tag, pubkey, routing_info)) = routing_info.
 
 (*
     A sphinx packet is a 4-tuple of the form:
@@ -159,14 +158,14 @@ fun sphinx_to_routing_info(SphinxPacket):bitstring.
 fun sphinx_to_integrity_tag(SphinxPacket):bitstring.
 fun sphinx_to_payload(SphinxPacket):bitstring.
 
-equation forall my_kem_ciphertext:bitstring, routing_info:bitstring, my_IntegrityTag:bitstring, body:bitstring;
-    sphinx_to_kem_ciphertext(pack_sphinx_packet(my_kem_ciphertext, routing_info, my_IntegrityTag, body)) = my_kem_ciphertext.
-equation forall my_kem_ciphertext:bitstring, routing_info:bitstring, my_IntegrityTag:bitstring, body:bitstring;
-    sphinx_to_routing_info(pack_sphinx_packet(my_kem_ciphertext, routing_info, my_IntegrityTag, body)) = routing_info.
-equation forall my_kem_ciphertext:bitstring, routing_info:bitstring, my_IntegrityTag:bitstring, body:bitstring;
-    sphinx_to_integrity_tag(pack_sphinx_packet(my_kem_ciphertext, routing_info, my_IntegrityTag, body)) = my_IntegrityTag.
-equation forall my_kem_ciphertext:bitstring, routing_info:bitstring, my_IntegrityTag:bitstring, body:bitstring;
-    sphinx_to_payload(pack_sphinx_packet(my_kem_ciphertext, routing_info, my_IntegrityTag, body)) = body.
+equation forall my_kem_ciphertext:bitstring, routing_info:bitstring, my_integrity_tag:bitstring, body:bitstring;
+    sphinx_to_kem_ciphertext(pack_sphinx_packet(my_kem_ciphertext, routing_info, my_integrity_tag, body)) = my_kem_ciphertext.
+equation forall my_kem_ciphertext:bitstring, routing_info:bitstring, my_integrity_tag:bitstring, body:bitstring;
+    sphinx_to_routing_info(pack_sphinx_packet(my_kem_ciphertext, routing_info, my_integrity_tag, body)) = routing_info.
+equation forall my_kem_ciphertext:bitstring, routing_info:bitstring, my_integrity_tag:bitstring, body:bitstring;
+    sphinx_to_integrity_tag(pack_sphinx_packet(my_kem_ciphertext, routing_info, my_integrity_tag, body)) = my_integrity_tag.
+equation forall my_kem_ciphertext:bitstring, routing_info:bitstring, my_integrity_tag:bitstring, body:bitstring;
+    sphinx_to_payload(pack_sphinx_packet(my_kem_ciphertext, routing_info, my_integrity_tag, body)) = body.
 
 (* ---------------------------------------------------------------- *)
 (* Client side                                                      *)
@@ -201,6 +200,7 @@ let client_send_process() =
     let integrity_key2 = kdf_output_to_integrity_key(kdf_output2) in
     let routing_info_key2 = kdf_output_to_routing_info_key(kdf_output2) in
     let payload_key2 = kdf_output_to_payload_key(kdf_output2) in
+    out(witness_mix2_chan, shared_secret2);
 
     (* last hop *)
     let routing_cmds2 = zero in
@@ -208,14 +208,16 @@ let client_send_process() =
     let IntegrityTag2 = mac(to_mac_key(integrity_key2), routing_info2) in
 
     (* first hop *)
-    let routing_cmds1 = pack_routing_commands(kem_ciphertext2, integrity_tag_to_bitstring(IntegrityTag2), from_PublicKey(mix2_pubkey), routing_info2) in
+    let routing_cmds1 = pack_routing_commands(kem_ciphertext2, IntegrityTag2, from_PublicKey(mix2_pubkey), routing_info2) in
     let routing_info1 = stream_cipher(to_stream_key(routing_info_key1), routing_cmds1) in
     let IntegrityTag1 = mac(to_mac_key(integrity_key1), routing_info1) in
+
+    let mac_ok = verify_mac(to_mac_key(integrity_key1), routing_info1, IntegrityTag1) in
 
     let payload2 = sprp_encrypt(to_sprp_key(payload_key2), client_plaintext) in
     let payload1 = sprp_encrypt(to_sprp_key(payload_key1), payload2) in
 
-    let packet = pack_sphinx_packet(kem_ciphertext1, routing_info1, integrity_tag_to_bitstring(IntegrityTag1), payload1) in
+    let packet = pack_sphinx_packet(kem_ciphertext1, routing_info1, IntegrityTag1, payload1) in
 
     event ClientCreatedPacket(packet);
     out(mix1_read_chan, packet).
@@ -250,18 +252,18 @@ let mix1_process() =
 
     let my_kem_ciphertext = sphinx_to_kem_ciphertext(packet) in
     let routing_info = sphinx_to_routing_info(packet) in
-    let my_IntegrityTag = sphinx_to_integrity_tag(packet) in
+    let my_integrity_tag = sphinx_to_integrity_tag(packet) in
     let my_payload = sphinx_to_payload(packet) in
 
     let shared_secret = decapsulate(mix1_privkey, my_kem_ciphertext) in
+    out(witness_mix1_chan, shared_secret);
 
     let kdf_output = kdf(shared_secret) in
     let my_integrity_key = kdf_output_to_integrity_key(kdf_output) in
     let routing_info_key1 = kdf_output_to_routing_info_key(kdf_output) in
     let PayloadKey1 = kdf_output_to_payload_key(kdf_output) in
 
-    let my_IntegrityTag' = mac(to_mac_key(my_integrity_key), routing_info) in
-    if (my_IntegrityTag = integrity_tag_to_bitstring(my_IntegrityTag')) then (
+    if ( verify_mac(to_mac_key(my_integrity_key), routing_info, my_integrity_tag) ) then (
 
         let routing_cmds = stream_cipher_decrypt(to_stream_key(routing_info_key1), routing_info) in
 
@@ -271,9 +273,9 @@ let mix1_process() =
         let routing_info2 = routing_commands_to_routing_info(routing_cmds) in
 
         let next_payload = sprp_decrypt(to_sprp_key(PayloadKey1), my_payload) in
-        out(mix2_read_chan, pack_sphinx_packet(kem2_ciphertext, routing_info2, my_IntegrityTag, next_payload))
+        out(mix2_read_chan, pack_sphinx_packet(kem2_ciphertext, routing_info2, my_integrity_tag, next_payload))
     ) else (
-        event IntegrityCheckFailedMix1()
+        event IntegrityCheckFailedMix1
     ).
 
 let mix2_process() =
@@ -281,27 +283,25 @@ let mix2_process() =
     in(mix2_read_chan, packet:SphinxPacket);
     event Mix2ReceivedSphinxPacket(packet);
 
-    let my_kem_ciphertext = sphinx_to_kem_ciphertext(packet) in
-    let routing_info = sphinx_to_routing_info(packet) in
-    let my_IntegrityTag = sphinx_to_integrity_tag(packet) in
-    let my_payload = sphinx_to_payload(packet) in
+    let mix2_kem_ciphertext = sphinx_to_kem_ciphertext(packet) in
+    let mix2_routing_info = sphinx_to_routing_info(packet) in
+    let mix2_integrity_tag = sphinx_to_integrity_tag(packet) in
+    let mix2_payload = sphinx_to_payload(packet) in
 
-    let shared_secret = decapsulate(mix2_privkey, my_kem_ciphertext) in
+    let shared_secret = decapsulate(mix2_privkey, mix2_kem_ciphertext) in
 
-    let kdf_output = kdf(shared_secret) in
-    let my_integrity_key = kdf_output_to_integrity_key(kdf_output) in
-    let routing_info_key = kdf_output_to_routing_info_key(kdf_output) in
-    let payload_key = kdf_output_to_payload_key(kdf_output) in
-    
-    let IntegrityTag' = mac(to_mac_key(my_integrity_key), routing_info) in
+    let mix2_kdf_output = kdf(shared_secret) in
+    let mix2_integrity_key = kdf_output_to_integrity_key(mix2_kdf_output) in
+    let mix2_routing_info_key = kdf_output_to_routing_info_key(mix2_kdf_output) in
+    let mix2_payload_key = kdf_output_to_payload_key(mix2_kdf_output) in
+    out(witness_mix2_chan, shared_secret);
 
-    event Meow();
-    if (my_IntegrityTag = integrity_tag_to_bitstring(IntegrityTag')) then (
+    if ( verify_mac(to_mac_key(mix2_integrity_key), mix2_routing_info, mix2_integrity_tag) ) then (
         (*let routing_cmds = stream_cipher_decrypt(to_stream_key(routing_info_key), routing_info) in*)
         (*let final_payload = sprp_decrypt(to_sprp_key(payload_key), my_payload) in*)
-        event ReceivedFinalPayload()
+        event ReceivedFinalPayload
     ) else (
-        event IntegrityCheckFailedMix2()
+        event IntegrityCheckFailedMix2
     ).
 
 let shared_secret_witness_mix1() =
@@ -327,6 +327,7 @@ let shared_secret_witness_mix2() =
 (* ---------------------------------------------------------------- *)
 
 query event(Meow()).
+query event(Woof()).
 query event(Mix1SharedSecretCorrect).
 query event(Mix1SharedSecretIncorrect).
 query event(Mix2SharedSecretCorrect).
