@@ -263,7 +263,9 @@ let mix1_process() =
     let routing_info_key1 = kdf_output_to_routing_info_key(kdf_output) in
     let PayloadKey1 = kdf_output_to_payload_key(kdf_output) in
 
-    if ( verify_mac(to_mac_key(my_integrity_key), routing_info, my_integrity_tag) ) then (
+    let mac_ok = verify_mac(to_mac_key(my_integrity_key), routing_info, my_integrity_tag) in
+
+    if ( mac_ok = true) then (
 
         let routing_cmds = stream_cipher_decrypt(to_stream_key(routing_info_key1), routing_info) in
 
@@ -289,19 +291,20 @@ let mix2_process() =
     let mix2_payload = sphinx_to_payload(packet) in
 
     let shared_secret = decapsulate(mix2_privkey, mix2_kem_ciphertext) in
+    out(witness_mix2_chan, shared_secret);
 
     let mix2_kdf_output = kdf(shared_secret) in
     let mix2_integrity_key = kdf_output_to_integrity_key(mix2_kdf_output) in
     let mix2_routing_info_key = kdf_output_to_routing_info_key(mix2_kdf_output) in
     let mix2_payload_key = kdf_output_to_payload_key(mix2_kdf_output) in
-    out(witness_mix2_chan, shared_secret);
 
-    if ( verify_mac(to_mac_key(mix2_integrity_key), mix2_routing_info, mix2_integrity_tag) ) then (
+    let mix2_mac_ok = verify_mac(to_mac_key(mix2_integrity_key), mix2_routing_info, mix2_integrity_tag) in
+    if ( mix2_mac_ok = true ) then (
         (*let routing_cmds = stream_cipher_decrypt(to_stream_key(routing_info_key), routing_info) in*)
         (*let final_payload = sprp_decrypt(to_sprp_key(payload_key), my_payload) in*)
-        event ReceivedFinalPayload
+        event ReceivedFinalPayload()
     ) else (
-        event IntegrityCheckFailedMix2
+        event IntegrityCheckFailedMix2()
     ).
 
 let shared_secret_witness_mix1() =
