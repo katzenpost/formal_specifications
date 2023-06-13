@@ -46,6 +46,12 @@ dirauth_min_num <- 3
 
 EXTENDS Naturals, Sequences, TLC, FiniteSets
 
+(*--algorithm squares
+begin
+end algorithm; *)
+\* BEGIN TRANSLATION
+\* END TRANSLATION 
+
 CONSTANT dirauth_nodes, bad_actors, relays, dirauth_min_num
 
 VARIABLES phase, descriptors, votes
@@ -62,7 +68,7 @@ ProtocolPhaseInvariant == phase \in {"Relay Key Generation",
 Threshold == (Cardinality(dirauth_nodes) \div 2) + 1
 
 ConsensusFailureWithBadActor ==
-    /\ LET N == {Cardinality(dirauth_nodes)}:
+    /\ LET N == {Cardinality(dirauth_nodes)} IN 
         /\ Cardinality(bad_actors) = N-3
     => <>[] (phase = "Failed Consensus")
 
