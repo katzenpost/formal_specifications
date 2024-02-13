@@ -14,7 +14,7 @@ inline acquire_read(lock) {
   do
     :: atomic {
       if
-        :: lock.writing == 1 ->
+        :: lock.writing == 1 || lock.writeWaiters > 0 ->
 	   lock.readWaiters++;
 	   lock.writeComplete?0;
 	   lock.readWaiters--;
@@ -39,7 +39,7 @@ inline acquire_write(lock) {
   do
     :: atomic {
       if
-	:: lock.writing == 0 -> 
+	:: lock.writing == 0 && lock.readers == 0 ->
 	   lock.writing = 1;
 	   break;
 	:: else ->
