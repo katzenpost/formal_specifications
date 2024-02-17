@@ -1,25 +1,24 @@
 
-#define N 3 /* max ARQ window size */
+#include "wait_group.pml"
+#include "rwmutex.pml"
 
-typedef ARQMessage {
-  int SURBID = 0;
+inline lock(x) {
+	d_step { x == 0; x = 1 }
 }
 
-typedef RWLock {
-    chan writeComplete = [0] of {bit}; // Channel for signaling writing completion to readers
-    int readers;                       // Counter for active readers
-    bit writing;                       // Flag indicating if writing is in progress
+inline unlock(x) {
+	d_step { assert x == 1; x = 0 }
 }
+
+#define N 10 /* max ARQ window size */
 
 /* ARQ state */
 
-chan arq_resend_chan = [2] of { ARQMessage };
-chan arq_send_chan = [2] of { ARQMessage };
+chan arq_resend_chan = [2] of { int };
+chan arq_send_chan = [2] of { int };
 byte arq_surb_id_map[N];
 RWLock arq_lock;
-
-
-
+chan priority_queue = [N] of { int }
 
 
 /* simulate the network */
@@ -58,28 +57,24 @@ inline start_arq() {
 proctype arq_worker() {
   ARQMessage message;
   do
-    :: arq_resend_chan?message -> do_resend(message)
+    :: timeout ->
+       priority_queue?message;
+       do_resend(message)
     :: arq_send_chan?message -> do_send(message)
   od
 }
 
-inline do_resend(ARQMessage message) {
+inline do_resend(int message) {
+
 }
 
-inline do_send(ARQMessage message) {
+inline do_send(int message) {
+
 }
 
 inline send_arq_message(int surb_id) {
-  acquire_write(arq_lock);
-  
-  assert(arq_surb_id_map[surb_id] == 0);
-  arq_surb_id_map[surb_id] = 1;
-
-  release_write(arq_lock);
-
-  ARQMessage message;
-  message.SURBID = surb_id;
-  sendCh!message
+  priority_queue!surb_id;
+  arq_send_chan!surb_id
 }
 
 
