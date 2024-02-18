@@ -12,6 +12,10 @@ inline unlock(x) {
 
 #define N 10 /* max ARQ window size */
 
+chan netIn = [0] of { bit };
+chan netOut = [0] of { bit };
+
+
 /* ARQ state */
 
 chan arq_resend_chan = [2] of { int };
@@ -23,7 +27,7 @@ chan priority_queue = [N] of { int }
 
 /* simulate the network */
 
-proctype network_link(chan netIn, netOut) {
+proctype network_link() {
   bit readBuf
 end: do
     :: netOut?readBuf ->
@@ -34,7 +38,7 @@ progress: netIn!readBuf
 
 /* connection type  */
 
-proctype net_reader(chan netIn) {
+proctype net_reader() {
   bit readBuf
 end: do
     :: netIn?readBuf ->
@@ -91,14 +95,10 @@ inline start_daemon() {
 /* startup */
 
 init {
-  chan netIn = [0] of { bit };
-  chan netOut = [0] of { bit };
 
-  run network_link(netIn, netOut);
-
-
+  run network_link();
   start_daemon();
-  start_connection(netIn)
+  start_connection()
   
   
   /* send a message */
