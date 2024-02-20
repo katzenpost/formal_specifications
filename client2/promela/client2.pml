@@ -38,6 +38,9 @@ incoming_send_to_client_ch = [0] of { bit };
 
 /* connection state */
 chan connection_cmd_ch = [0] of { bit };
+chan connection_get_consensus_ch = [1] of { bit };
+bool connection_is_connected;
+RWLock connection_is_connected_lock;
 
 /* ARQ state */
 chan arq_resend_chan = [2] of { int };
@@ -76,6 +79,18 @@ proctype connection_worker() {
   od
 }
 
+inline get_consensus() {
+  bool is_connected;
+  acquire_read(connection_is_connected_lock);
+  is_connected = connection_is_connected;
+  release_read(connection_is_connected_lock);
+  if
+    :: !is_connected -> break;
+    :: is_connected -> 
+  fi
+}
+
+
 /* pki */
 
 proctype pki_worker() {
@@ -84,10 +99,15 @@ proctype pki_worker() {
     :: skip ->
       if :: pki_force_update_ch?ignore ->
         skip;
-        
       fi
-  
 
+      if :: skip;
+         :: getConsensus() -> OnDocumentFn();
+      fi
+      /* for now and now+1, model p.updateDocument(epoch) */
+      /* getDocument(ctx context.Context, epoch uint64) (*cpki.Document, error) */
+      /* resp, err := p.consensusGetter.GetConsensus(ctx, epoch) */
+      /* p.c.cfg.Callbacks.OnDocumentFn(d.(*cpki.Document)) */
   od
 }
 
@@ -177,15 +197,3 @@ inline send_arq_message(int surb_id) {
 }
 */
 
-
-
-/* startup */
-
-init {
-
-  run network_link();
-  run net_reader();
-  run connection_worker();
-
-
-}
