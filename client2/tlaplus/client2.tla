@@ -9,11 +9,11 @@ vars == <<channels, is_connected, client_mutex, pc>>
 Init ==
     /\ is_connected = FALSE
     /\ client_mutex = 0
-    /\ channels = [chan \in {"sendChan", "receiveChan"} |-> <<>>]
+    /\ channels = [chan \in {"sendChan", "wire_in_ch", "wire_out_ch"} |-> <<>>]
     /\ pc = [t \in {"wire_receiver", "connection", "client"} |-> "Idle"]
 
 
-(* reusable actions *)
+\* reusable actions
 
 ChannelSend(channelName, message) ==
     /\ Len(channels[channelName]) < MAX_CHANNEL_SIZE
@@ -21,22 +21,21 @@ ChannelSend(channelName, message) ==
 
 ChannelReceive(channelName) ==
     /\ Len(channels[channelName]) > 0
-    /\ Len(channels[channelName]) < MAX_CHANNEL_SIZE
     /\ channels' = [channels EXCEPT ![channelName] = Tail(channels[channelName])]
 
-AcquireMutex(t) ==
-    /\ client_mutex = 0
-    /\ client_mutex' = t
+AcquireMutex(t, lock) ==
+    /\ lock = 0
+    /\ lock' = t
 
-ReleaseMutex(t) ==
-    /\ client_mutex = t
-    /\ client_mutex' = 0
+ReleaseMutex(t, lock) ==
+    /\ lock = t
+    /\ lock' = 0
 
-(* client main *)
+\* client main
 
 DialStart(t) ==
     /\ pc[t] = "Idle"
-    /\ AcquireMutex(t)
+    /\ AcquireMutex(t, client_mutex)
     /\ is_connected = FALSE
     /\ pc' = [pc EXCEPT ![t] = "Dialing"]
     /\ UNCHANGED <<channels, is_connected>>
@@ -45,13 +44,13 @@ DialFinish(t) ==
     /\ pc[t] = "Dialing"
     /\ is_connected = FALSE
     /\ is_connected' = TRUE
-    /\ ReleaseMutex(t)
+    /\ ReleaseMutex(t, client_mutex)
     /\ pc' = [pc EXCEPT ![t] = "Idle"]
     /\ UNCHANGED <<channels>>
 
 HangupStart(t) ==
     /\ pc[t] = "Idle"
-    /\ AcquireMutex(t)
+    /\ AcquireMutex(t, client_mutex)
     /\ is_connected = TRUE
     /\ pc' = [pc EXCEPT ![t] = "HangingUp"]
     /\ UNCHANGED <<channels, is_connected>>
@@ -60,65 +59,71 @@ HangupFinish(t) ==
     /\ pc[t] = "HangingUp"
     /\ is_connected = TRUE
     /\ is_connected' = FALSE
-    /\ ReleaseMutex(t)
+    /\ ReleaseMutex(t, client_mutex)
     /\ pc' = [pc EXCEPT ![t] = "Idle"]
     /\ UNCHANGED <<channels>>
 
 SendMessageStart(t) ==
     /\ pc[t] = "Idle"
-    /\ AcquireMutex(t)
+    /\ AcquireMutex(t, client_mutex)
     /\ is_connected = TRUE
-    /\ pc' = [pc EXCEPT ![t] = "SendingMessage"]
+    /\ pc' = [pc EXCEPT ![t] = "PrepareSendingMessage1"]
     /\ UNCHANGED <<channels, is_connected>>
 
-SendMessageFinish(t, s) ==
-    /\ pc[t] = "SendingMessage"
-    /\ pc[s] = "Idle"
-    /\ ReleaseMutex(t)
+PrepareSendingMessage1(t) ==
+    /\ pc[t] = "PrepareSendingMessage1"
+    /\ ReleaseMutex(t, client_mutex)
+    /\ pc' = [pc EXCEPT ![t] = "PrepareSendingMessage2"]
+    /\ UNCHANGED <<is_connected, channels>>
+
+PrepareSendingMessage2(t) ==
+    /\ pc[t] = "PrepareSendingMessage2"
     /\ ChannelSend("sendChan", "message")
+    /\ pc' = [pc EXCEPT ![t] = "FinishSendingMessage"]
+    /\ UNCHANGED <<is_connected, client_mutex>>
+
+FinishSendingMessage(t) ==
+    /\ pc[t] = "FinishSendingMessage"
     /\ pc' = [pc EXCEPT ![t] = "Idle"]
-    /\ UNCHANGED <<is_connected>>
+    /\ UNCHANGED <<is_connected, channels, client_mutex>>
 
-(* connection *)
 
-SenderReceiveStart(t, s) ==
-    /\ Len(channels["sendChan"]) > 0
+\* connection
+
+SenderReceiveStart(t) ==
     /\ pc[t] = "Idle"
-    /\ pc[s] = "SendingMessage"
-    /\ pc' = [pc EXCEPT ![t] = "ProcessingMessage"]
     /\ ChannelReceive("sendChan")
+    /\ pc' = [pc EXCEPT ![t] = "ProcessingMessage"]
     /\ UNCHANGED <<is_connected, client_mutex>>
 
 SenderReceiveFinish(t) ==
     /\ pc[t] = "ProcessingMessage"
-    /\ pc' = [pc EXCEPT ![t] = "Idle"]
-    /\ UNCHANGED <<is_connected, client_mutex, channels>>
-
-ReceiveCommand(t, s) ==
-    /\ pc[t] = "Idle"
-    /\ pc[s] = "Idle"
-    /\ Len(channels["receiveChan"]) > 0
-    /\ pc' = [pc EXCEPT ![t] = "ProcessingCommand"]
-    /\ UNCHANGED <<is_connected, client_mutex, channels>>
-
-ProcessingCommand(t, s) ==
-    /\ pc[t] = "ProcessingCommand"
-    /\ pc[s] = "SentToConnection"
-    /\ ChannelReceive("receiveChan")
+    /\ ChannelSend("wire_out_ch", "message")
     /\ pc' = [pc EXCEPT ![t] = "Idle"]
     /\ UNCHANGED <<is_connected, client_mutex>>
 
-(* wire receiver *)
-
-WireReceiverSend(t, s) ==
+ReceiveCommand(t) ==
     /\ pc[t] = "Idle"
-    /\ pc[s] = "ProcessingCommand"
-    /\ pc' = [pc EXCEPT ![t] = "SentToConnection"]
-    /\ UNCHANGED <<is_connected, channels, client_mutex>>
+    /\ ChannelReceive("wire_in_ch")
+    /\ pc' = [pc EXCEPT ![t] = "ProcessingCommand"]
+    /\ UNCHANGED <<is_connected, client_mutex>>
 
-WireReceiverReset(t) ==
-    /\ pc[t] = "SentToConnection"
-    /\ ChannelSend("receiveChan", "message")
+ProcessingCommand(t) ==
+    /\ pc[t] = "ProcessingCommand"
+    /\ pc' = [pc EXCEPT ![t] = "Idle"]
+    /\ UNCHANGED <<is_connected, client_mutex, channels>>
+
+\* wire receiver
+
+WireWait(t) ==
+    /\ pc[t] = "Idle"
+    /\ ChannelReceive("wire_out_ch")
+    /\ pc' = [pc EXCEPT ![t] = "Proxying"]
+    /\ UNCHANGED <<is_connected, client_mutex>>
+
+WireProxying(t) ==
+    /\ pc[t] = "Proxying"
+    /\ ChannelSend("wire_in_ch", "message")
     /\ pc' = [pc EXCEPT ![t] = "Idle"]
     /\ UNCHANGED <<is_connected, client_mutex>>
 
@@ -128,22 +133,24 @@ Next ==
     \/ HangupStart("client")
     \/ HangupFinish("client")
     \/ SendMessageStart("client")
-    \/ SendMessageFinish("client", "connection")
-    \/ SenderReceiveStart("connection", "client")
+    \/ PrepareSendingMessage1("client")
+    \/ PrepareSendingMessage2("client")
+    \/ FinishSendingMessage("client")
+    \/ SenderReceiveStart("connection")
     \/ SenderReceiveFinish("connection")
-    \/ ReceiveCommand("connection", "wire_receiver")
-    \/ ProcessingCommand("connection", "wire_receiver")
-    \/ WireReceiverReset("wire_receiver")
-    \/ WireReceiverSend("wire_receiver", "connection")
+    \/ ReceiveCommand("connection")
+    \/ ProcessingCommand("connection")
+    \/ WireWait("wire_receiver")
+    \/ WireProxying("wire_receiver")
 
 
 WireReceiverInteraction ==
-    WireReceiverSend("wire_receiver", "connection") \/ WireReceiverReset("wire_receiver")
+    WireWait("wire_receiver") \/ WireProxying("wire_receiver")
 
 Spec ==
     Init /\ [][Next]_vars
-    /\ WF_vars(WireReceiverInteraction)
-    /\ WF_vars(ReceiveCommand("connection", "wire_receiver"))
+    /\ SF_vars(WireReceiverInteraction)
+    /\ SF_vars(ReceiveCommand("connection"))
 
 
 ====
