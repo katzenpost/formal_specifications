@@ -118,7 +118,8 @@ ProcessingCommand(t) ==
 WireWait(t) ==
     /\ pc[t] = "Idle"
     /\ ChannelReceive("wire_out_ch")
-    /\ pc' = [pc EXCEPT ![t] = "Proxying"]
+    /\  \/ pc' = [pc EXCEPT ![t] = "Proxying"]
+        \/ pc' = [pc EXCEPT ![t] = "Idle"] \* lossy network drops packets
     /\ UNCHANGED <<is_connected, client_mutex>>
 
 WireProxying(t) ==
@@ -145,12 +146,13 @@ Next ==
 
 
 WireReceiverInteraction ==
-    WireWait("wire_receiver") \/ WireProxying("wire_receiver")
+    /\ WireWait("wire_receiver") \/ WireProxying("wire_receiver")
+
+Fairness ==
+    /\ WF_vars(Next)
+    /\ SF_vars(WireReceiverInteraction)
 
 Spec ==
-    Init /\ [][Next]_vars
-    /\ SF_vars(WireReceiverInteraction)
-    /\ SF_vars(ReceiveCommand("connection"))
-
+    Init /\ [][Next]_vars /\ Fairness
 
 ====
