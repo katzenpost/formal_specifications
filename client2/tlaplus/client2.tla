@@ -9,14 +9,14 @@ vars == <<channels, is_connected, client_mutex, pc>>
 Init ==
     /\ is_connected = FALSE
     /\ client_mutex = 0
-    /\ channels = [chan \in {"sendChan", "wire_in_ch", "wire_out_ch"} |-> <<>>]
-    /\ pc = [t \in {"wire_receiver", "connection", "client"} |-> "Idle"]
+    /\ channels = [chan \in {"sendChan", "wire_in_ch", "wire_out_ch", "wire_bridge_ch"} |-> <<>>]
+    /\ pc = [t \in {"wire_in", "wire_out", "connection", "client"} |-> "Idle"]
 
 
 \* reusable actions
 
 ChannelSend(channelName, message) ==
-    /\ Len(channels[channelName]) < MAX_CHANNEL_SIZE
+    /\ Len(channels[channelName]) < IF channelName = "wire_bridge_ch" THEN MAX_CHANNEL_SIZE + 1 ELSE MAX_CHANNEL_SIZE
     /\ channels' = [channels EXCEPT ![channelName] = Append(@, message)]
 
 ChannelReceive(channelName) ==
@@ -115,18 +115,34 @@ ProcessingCommand(t) ==
 
 \* wire receiver
 
-WireWait(t) ==
+WireIn(t) ==
     /\ pc[t] = "Idle"
     /\ ChannelReceive("wire_out_ch")
-    /\  \/ pc' = [pc EXCEPT ![t] = "Proxying"]
+    /\  \/ pc' = [pc EXCEPT ![t] = "ProxyingIn"]
         \/ pc' = [pc EXCEPT ![t] = "Idle"] \* lossy network drops packets
-    /\ UNCHANGED <<is_connected, client_mutex>>
+
+WireInReset(t) ==
+    /\ pc[t] = "ProxyingIn"
+    /\ ChannelSend("wire_bridge_ch", "message")
+    /\ pc' = [pc EXCEPT ![t] = "Idle"]
+
+WireOut(t) == 
+    /\ pc[t] = "Idle"
+    /\ ChannelReceive("wire_bridge_ch")
+    /\ pc' = [pc EXCEPT ![t] = "ProxyingOut"]
 
 WireProxying(t) ==
-    /\ pc[t] = "Proxying"
+    /\ pc[t] = "ProxyingOut"
     /\ ChannelSend("wire_in_ch", "message")
     /\ pc' = [pc EXCEPT ![t] = "Idle"]
+
+WireReceiverInteraction ==
+    /\  \/ WireIn("wire_in")
+        \/ WireInReset("wire_in")
+        \/ WireOut("wire_out")
+        \/ WireProxying("wire_out")
     /\ UNCHANGED <<is_connected, client_mutex>>
+
 
 Next ==
     \/ DialStart("client")
@@ -141,12 +157,7 @@ Next ==
     \/ SenderReceiveFinish("connection")
     \/ ReceiveCommand("connection")
     \/ ProcessingCommand("connection")
-    \/ WireWait("wire_receiver")
-    \/ WireProxying("wire_receiver")
-
-
-WireReceiverInteraction ==
-    /\ WireWait("wire_receiver") \/ WireProxying("wire_receiver")
+    \/ WireReceiverInteraction
 
 Fairness ==
     /\ WF_vars(Next)
