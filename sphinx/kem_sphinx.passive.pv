@@ -1,12 +1,19 @@
-(*
+(*  SPDX-FileCopyrightText: (c) 2023-2024 David Stainton
+    SPDX-License-Identifier: AGPL-3.0-only
+
     KEM Sphinx Cryptographic Packet format
 
     This specification is based on the paper:
 
+    Post Quantum Sphinx
+    https://eprint.iacr.org/2023/1960.pdf
+
+    which is just a simple variation of the original Sphinx packet format:
+
     Sphinx: A Compact and Provably Secure Mix Format
     https://cypherpunks.ca/~iang/pubs/Sphinx_Oakland09.pdf
 
-    Here we sacrifice the compactness of the original Sphinx packet format
+    Here we sacrifice the compactness of the original (NIKE) Sphinx packet format
     for the speed of using a KEM and performing only one public key
     operations per hop.
 
@@ -368,9 +375,9 @@ process
     (
       mix1_gen_keypair() 
       | mix2_gen_keypair()
-      | shared_secret_witness_mix1()
-      | shared_secret_witness_mix2()
-      | mix1_process()
-      | mix2_process()
+      | !shared_secret_witness_mix1()
+      | !shared_secret_witness_mix2()
+      | !mix1_process()
+      | !mix2_process()
       | client_send_process()
     )
