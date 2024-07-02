@@ -1,0 +1,85 @@
+(* KEM Ratchet
+*)
+
+
+(* ---------------------------------------------------------------- *)
+(* Parameters                                                       *)
+(* ---------------------------------------------------------------- *)
+
+set traceBacktracking = false.
+set reconstructTrace = false.
+set attacker = passive.
+
+(* KEM *)
+type PublicKey.
+type PrivateKey.
+fun to_PublicKey(PrivateKey):PublicKey.
+fun internal_kem_enc(PublicKey, bitstring):bitstring.
+fun internal_kem_dec(PrivateKey, bitstring):bitstring
+reduc forall sk:PrivateKey,m:bitstring;
+      internal_kem_dec(sk,internal_kem_enc(to_PublicKey(sk),m)) = m.
+
+letfun kempriv2pub(k:PrivateKey) = to_PublicKey(k).
+
+letfun kem_enc(pk:PublicKey) =
+       new ss:bitstring;
+       (internal_kem_enc(pk,ss),ss).
+
+letfun kem_dec(sk:PrivateKey,ct:bitstring) =
+       internal_kem_dec(sk,ct).
+
+(* events *)
+
+event secrets_match().
+event secrets_do_not_match().
+
+(* queries *)
+
+query event(secrets_match()).
+query event(secrets_do_not_match()).
+
+(* processes *)
+
+(***
+
+A KEM must satisfy the following standard correctness property:
+P[(pk, sk) ←$ Gen, (c, k) ←$ Enc(pk), k′ ← Dec(sk, c) : k = k′] = 1 .
+
+Below you can see that if secrets_match event is invoked then
+this proves the KEM correctness property. However it seems the best
+Proverif can do in this regard is to be unable to prove it's negative.
+
+Verification summary:
+
+Query not event(secrets_match) cannot be proved.
+
+Query not event(secrets_do_not_match) is true.
+
+***)
+
+free pubkey_channel: channel.
+free ct_channel: channel.
+free ss_channel: channel.
+
+let Alice(pubkeyAlice:PublicKey, privkeyAlice:PrivateKey) =
+    out(pubkey_channel, pubkeyAlice);
+    in(ct_channel, kemCiphertext:bitstring);
+    let ssA = kem_dec(privkeyAlice, kemCiphertext) in
+    in(ss_channel, ssB:bitstring);
+    if (ssA = ssB) then (
+        event secrets_match()
+    ) else (
+        event secrets_do_not_match()
+    ).
+
+let Bob() =
+    in(pubkey_channel, pubkeyX:PublicKey);
+    let (ct:bitstring, ssB:bitstring) = kem_enc(pubkeyX) in
+    out(ct_channel, ct);
+    out(ss_channel, ssB).
+
+process
+    new Alice_private_key:PrivateKey;
+    let Alice_public_key = to_PublicKey(Alice_private_key) in
+    Alice(Alice_public_key, Alice_private_key) |
+    Bob()
