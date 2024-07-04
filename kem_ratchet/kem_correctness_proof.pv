@@ -32,11 +32,16 @@ letfun kem_dec(sk:PrivateKey,ct:bitstring) =
 
 event secrets_match().
 event secrets_do_not_match().
+event bob_secret_match().
+event bob_secret_not_match().
 
 (* queries *)
 
 query event(secrets_match()).
 query event(secrets_do_not_match()).
+query event(bob_secret_match()).
+query event(bob_secret_not_match()).
+
 
 (* processes *)
 
@@ -61,10 +66,10 @@ free pubkey_channel: channel.
 free ct_channel: channel.
 free ss_channel: channel.
 
-let Alice(pubkeyAlice:PublicKey, privkeyAlice:PrivateKey) =
-    out(pubkey_channel, pubkeyAlice);
+let Alice(alice_public_key:PublicKey, alice_private_key:PrivateKey) =
+    out(pubkey_channel, alice_public_key);
     in(ct_channel, kemCiphertext:bitstring);
-    let ssA = kem_dec(privkeyAlice, kemCiphertext) in
+    let ssA = kem_dec(alice_private_key, kemCiphertext) in
     in(ss_channel, ssB:bitstring);
     if (ssA = ssB) then (
         event secrets_match()
@@ -76,7 +81,14 @@ let Bob() =
     in(pubkey_channel, pubkeyX:PublicKey);
     let (ct:bitstring, ssB:bitstring) = kem_enc(pubkeyX) in
     out(ct_channel, ct);
-    out(ss_channel, ssB).
+    out(ss_channel, ssB);
+    new bob_private_key:PrivateKey;
+    let ssC = kem_dec(bob_private_key, ct) in
+    if (ssC = ssB) then (
+        event bob_secret_match()
+    ) else (
+        event bob_secret_not_match()
+    ).
 
 process
     new Alice_private_key:PrivateKey;
