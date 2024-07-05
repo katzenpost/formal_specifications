@@ -1,0 +1,139 @@
+
+set traceBacktracking = false.
+set reconstructTrace = false.
+set attacker = passive.
+
+(* KEM *)
+
+type PublicKey.
+type PrivateKey.
+fun to_PublicKey(PrivateKey):PublicKey.
+fun internal_kem_enc(PublicKey, bitstring):bitstring.
+fun internal_kem_dec(PrivateKey, bitstring):bitstring
+reduc forall sk:PrivateKey,m:bitstring;
+      internal_kem_dec(sk,internal_kem_enc(to_PublicKey(sk),m)) = m.
+
+letfun kempriv2pub(k:PrivateKey) = to_PublicKey(k).
+
+letfun kem_encap(pk:PublicKey) =
+       new ss:bitstring;
+       (internal_kem_enc(pk,ss),ss).
+
+letfun kem_decap(sk:PrivateKey,ct:bitstring) =
+       internal_kem_dec(sk,ct).
+
+fun hash_to_private_key(bitstring):PrivateKey.
+
+letfun derive_keypair(seed:bitstring) =
+       let sk = hash_to_private_key(seed) in
+       (sk, to_PublicKey(sk)).
+
+letfun gen() =
+       new pk:PublicKey;
+       new sk:PrivateKey;
+       (pk,sk).
+
+(* CKA helper functions *)
+
+type CKA_Message.
+fun to_CKA_Message(bitstring, PublicKey):CKA_Message.
+letfun from_CKA_Message(m:CKA_Message) =
+       new pk:PublicKey;
+       new ct:bitstring;
+       (ct,pk).
+equation forall pk:PublicKey, ct:bitstring;
+	 from_CKA_Message(to_CKA_Message(ct,pk)) = (ct,pk).
+letfun ciphertext_from_CKA_Message(m:CKA_Message) =
+       new ct:bitstring;
+       ct.
+equation forall pk:PublicKey, ct:bitstring;
+	 ciphertext_from_CKA_Message(to_CKA_Message(ct,pk)) = ct.
+letfun public_key_from_CKA_Message(m:CKA_Message) =
+       new pk:PublicKey;
+       pk.
+equation forall pk:PublicKey, ct:bitstring;
+	 public_key_from_CKA_Message(to_CKA_Message(ct,pk)) = pk.
+
+type CKA_State.
+fun to_CKA_State(PublicKey, PrivateKey):CKA_State.
+letfun from_CKA_State(st:CKA_State) =
+       new pk:PublicKey;
+       new sk:PrivateKey;
+       (pk,sk).
+equation forall pk:PublicKey, sk:PrivateKey, st:CKA_State;
+	 from_CKA_State(to_CKA_State(pk, sk)) = (pk, sk).
+letfun from_CKA_State_to_public_key(st:CKA_State) =
+       new pk:PublicKey;
+       pk.
+equation forall pk:PublicKey, sk:PrivateKey, st:CKA_State;
+	 from_CKA_State_to_public_key(to_CKA_State(pk, sk)) = pk.
+letfun from_CKA_State_to_private_key(st:CKA_State) =
+       new sk:PrivateKey;
+       sk.
+equation forall pk:PublicKey, sk:PrivateKey, st:CKA_State;
+	 from_CKA_State_to_private_key(to_CKA_State(pk, sk)) = sk.
+
+letfun update_public_key(st: CKA_State, new_pk: PublicKey) =
+    let sk = from_CKA_State_to_private_key(st) in
+    to_CKA_State(new_pk, sk).
+equation forall pk: PublicKey, new_pk: PublicKey, sk: PrivateKey;
+    update_public_key(to_CKA_State(pk, sk), new_pk) = to_CKA_State(new_pk, sk).
+
+letfun update_private_key(st: CKA_State, new_sk: PrivateKey) =
+    let pk = from_CKA_State_to_public_key(st) in
+    to_CKA_State(pk, new_sk).
+equation forall pk: PublicKey, sk: PrivateKey, new_sk: PrivateKey;
+    update_private_key(to_CKA_State(pk, sk), new_sk) = to_CKA_State(pk, new_sk).
+
+
+(* CKA definitions *)
+
+letfun init_A(seed:bitstring) =
+       let (priv, pub) = derive_keypair(seed) in
+       new privkey:PrivateKey; (* place holder *)
+       to_CKA_State(pub, privkey).
+
+letfun init_B(seed:bitstring) =
+       let (priv, pub) = derive_keypair(seed) in
+       new pubkey:PublicKey; (* place holder *)
+       to_CKA_State(pubkey, priv).
+
+letfun CKA_Send(CKA_State:st) =
+       let (c,I) = kem_encap(from_CKA_State_to_public_key(st)) in
+       let (pk,sk) = gen() in
+       let T = to_CKA_Message(c,pk) in
+       (update_private_key(st, sk), T, I).
+
+letfun CKA_Receive(CKA_State:st, CKA_Message:m) =
+       let I = kem_decap(from_CKA_State_to_private_key(st), ciphertext_from_CKA_Message(m)) in
+       (update_public_key(st, public_key_from_CKA_Message(m))).
+
+(* AEAD *)
+
+type AEAD_Key.
+fun to_aead_key(bitstring):AEAD_Key.
+(* aead_encrypt(key, additional_data, message) *)
+fun aead_encrypt(AEAD_Key, bitstring, bitstring):bitstring.
+reduc forall k:AEAD_Key, ad:bitstring, p:bitstring;
+    aead_decrypt(k, ad, aead_encrypt(k, ad, p)) = p.
+
+(* FS-AEAD definitions *)
+
+type Sending_FS_AEAD_State.
+type Receiving_FS_AEAD_State.
+
+letfun fs_init_sender(k:AEAD_Key) =
+    let i:nat = 0 in
+    (k,i).
+
+letfun fs_init_receiver(k:AEAD_Key) =
+    let i:nat = 0 in
+    (k,i).
+
+letfun fs_send(ad:bitstring, mesg:bitstring, i:nat) =
+       
+
+(* processes *)
+
+
+
