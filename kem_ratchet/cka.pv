@@ -3,6 +3,17 @@ set traceBacktracking = false.
 set reconstructTrace = false.
 set attacker = passive.
 
+free skip_chan:channel[private].
+free skip_done_chan:channel.
+
+free fs_receive_chan:channel[private].
+
+
+table fs_aead_table(nat, bitstring).
+
+event SkipDoneEvent().
+
+
 (* KEM *)
 
 type PublicKey.
@@ -108,19 +119,45 @@ letfun CKA_Receive(CKA_State:st, CKA_Message:m) =
        let I = kem_decap(from_CKA_State_to_private_key(st), ciphertext_from_CKA_Message(m)) in
        (update_public_key(st, public_key_from_CKA_Message(m))).
 
-(* AEAD *)
+
+(* PRG *)
+
+fun con(bitstring,bitstring):bitstring.
+fun divhead(bitstring):bitstring.
+fun divrest(bitstring):bitstring.
+    equation forall mt:bitstring;
+     con(divhead(mt),divrest(mt))=mt.
+
+type StreamKey.
+type CipherStream.
+fun to_stream_key(bitstring):StreamKey.
+fun prg(StreamKey):bitstring.
+
+
+(* FS-AEAD definitions *)
+
+type AdditionalData.
+fun into_ad(nat,bitstring):AdditionalData.
+
+letfun from_ad(ad:AdditionalData) =
+       new i:nat;
+       new a:bitstring;
+       (i,a).
+reduc forall i:nat, a:bitstring;
+      from_ad(into_ad(i,a)) = (i,a).
 
 type AEAD_Key.
 fun to_aead_key(bitstring):AEAD_Key.
 (* aead_encrypt(key, additional_data, message) *)
-fun aead_encrypt(AEAD_Key, bitstring, bitstring):bitstring.
-reduc forall k:AEAD_Key, ad:bitstring, p:bitstring;
+fun aead_encrypt(AEAD_Key, AdditionalData, bitstring):bitstring.
+reduc forall k:AEAD_Key, ad:AdditionalData, p:bitstring;
     aead_decrypt(k, ad, aead_encrypt(k, ad, p)) = p.
 
-(* FS-AEAD definitions *)
 
 type Sending_FS_AEAD_State.
+fun send_state_to_bitstring(Sending_FS_AEAD_State):bitstring.
 type Receiving_FS_AEAD_State.
+fun receive_state_to_bitstring(Receiving_FS_AEAD_State):bitstring.
 
 letfun fs_init_sender(k:AEAD_Key) =
     let i:nat = 0 in
@@ -130,10 +167,65 @@ letfun fs_init_receiver(k:AEAD_Key) =
     let i:nat = 0 in
     (k,i).
 
-letfun fs_send(ad:bitstring, mesg:bitstring, i:nat) =
-       
+letfun fs_send(ad:bitstring, mesg:bitstring, i:nat, st:Sending_FS_AEAD_State) =
+       let prg_out = prg(to_stream_key(send_state_to_bitstring(st))) in
+       let w = divhead(prg_out) in
+       let K = divrest(prg_out) in
+       let h = into_ad(i,ad) in
+       let e = aead_encrypt(to_aead_key(K), h, mesg) in
+       (h,e).
+
+letfun try_skipped(i:nat) =
+       get fs_aead_table(=i,K) in
+       K
+       else
+       nil.
+
 
 (* processes *)
 
+let skip() =
+    in(skip_chan, (i:nat,st:bitstring));
+    if(i <> 0) then
+    (
+	let s = prg(to_stream_key(st)) in
+	let new_st = divhead(s) in
+	let raw_key = divrest(s) in
+	insert fs_aead_table(i, raw_key);
+	out(skip_chan, ((i-1), new_st))
+    ) else (
+      	new ret:SkipDone;
+        out(skip_done_chan, ret);
+	event SkipDoneEvent()
+    ).
+
+query event(SkipDoneEvent).
+
+let fs_receive(ad: AdditionalData, ciphertext:bitstring, state_index:nat, state_key:bitstring) =
+    let (i, a) = from_ad(ad) in
+    let K = try_skipped(i) in
+    if (K = nil) then
+    (
+       out(skip_chan, ()); 
+       let lala = skip() in
+       let prg_out = prg(state_key) in
+       let new_state_key = divhead(prg_out) in
+       let key = divrest(prg_out) in
+       let h = into_ad(i,ad) in
+       let plaintext = aead_decrypt(to_aead_key(key), h, ciphertext) in
+       out(fs_receive_chan, plaintext)
+    ) else (
+       let h = into_ad(i,ad) in
+       let plaintext = aead_decrypt(to_aead_key(K), h, ciphertext) in
+       out(fs_receive_chan, plaintext)
+    ).
 
 
+(* modular KEM double ratchet *)
+
+let init_A(k: bitstring) =
+    let k_root = divhead(k) in
+    let k_cka = divrest(k) in
+    let prg_rout = prg(k_root) in
+    let sigma_root = divhead(sigma_root) in
+    
