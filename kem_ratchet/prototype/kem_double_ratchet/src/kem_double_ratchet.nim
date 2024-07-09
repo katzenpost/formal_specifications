@@ -4,11 +4,14 @@
 import secp256k1
 import sequtils
 import nimcrypto/blake2
+import nimcrypto/keccak
 import std/random
+import std/options
+import results
 
 # KEM
 
-proc workingRng(data: var openArray[byte]): bool =
+proc workingRng*(data: var openArray[byte]): bool =
   for i in 0..<data.len:
     data[i] = byte(rand(0..255))
   true
@@ -17,6 +20,12 @@ proc kem_gen*(): (SKPublicKey, SKSecretKey) =
   let sk = SkSecretKey.random(workingRng).expect("should get a key")
   let pk = sk.toPublicKey()
   return (pk, sk)
+
+proc kem_gen_with_seed*(seed: array[32,byte]): Result[(SKPublicKey, SKSecretKey),string] =
+  let skResult = SkSecretKey.fromRaw(seed)
+  let sk = skResult.get()
+  let pk = sk.toPublicKey()
+  ok((pk, sk))
 
 proc hash(ss:SkEcdhSecret, pk1:SKPublicKey, pk2:SKPublicKey): seq[byte] =
   let ss_blob = ss.data
@@ -51,4 +60,41 @@ proc kem_decap*(privKey: SKSecretKey, ct: seq[byte]): seq[byte] =
   return ss2
 
 # CKA
+
+type CKAState = tuple
+  public_key: Option[SkPublicKey]
+  private_key: Option[SKSecretKey]
+
+type CKAMessage = tuple
+  ciphertext: seq[byte]
+  public_key: SkPublicKey
+
+proc cka_init_a*(seed: seq[byte]): CKAState =
+  let (pk,_) = kem_gen_with_seed(seqToArrayByte(seed, 32)).expect("should be a keypair")
+  let st: CKAState = (public_key: some(pk), private_key: none(SKSecretKey))
+  return st
+
+proc cka_init_b*(seed: seq[byte]): CKAState =
+  let (_,sk) = kem_gen_with_seed(seqToArrayByte(seed, 32)).expect("should be a keypair")
+  let st: CKAState = (public_key: none(SkPublicKey), private_key: some(sk))
+  return st
+
+proc cka_send*(state: CKAState): (CKAState, CKAMessage, seq[byte]) =
+  assert state.public_key.isSome == true
+  let (ct, ss) = kem_encap(state.public_key.get())
+  let (pk, sk) = kem_gen()
+  let st: CKAState = (public_key: state.public_key, private_key: some(sk))
+  let mesg: CKAMessage = (ciphertext: ct, public_key: pk)
+  return (st, mesg, ss)
+
+proc cka_receive*(state: CKAState, mesg: CKAMessage): (CKAState, seq[byte]) =
+  assert state.private_key.isSome == true
+  let ss = kem_decap(state.private_key.get(), mesg.ciphertext)
+  let st: CKAState = (public_key: some(mesg.public_key), private_key: some(state.private_key.get()))
+  return (st, ss)
+
+
+
+
+
 
