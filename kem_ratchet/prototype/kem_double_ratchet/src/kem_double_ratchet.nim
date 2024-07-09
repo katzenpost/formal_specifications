@@ -8,6 +8,7 @@ import nimcrypto/keccak
 import std/random
 import std/options
 import results
+import nimcrypto
 
 # KEM
 
@@ -61,9 +62,13 @@ proc kem_decap*(privKey: SKSecretKey, ct: seq[byte]): seq[byte] =
 
 # CKA
 
-type CKAState = tuple
-  public_key: Option[SkPublicKey]
-  private_key: Option[SKSecretKey]
+type CKAState* = object
+  public_key*: Option[SkPublicKey]
+  private_key*: Option[SKSecretKey]
+
+proc update_state(self: var CKAState, update: CKAState) =
+  self.public_key = update.public_key
+  self.private_key = update.private_key
 
 type CKAMessage = tuple
   ciphertext: seq[byte]
@@ -71,29 +76,49 @@ type CKAMessage = tuple
 
 proc cka_init_a*(seed: seq[byte]): CKAState =
   let (pk,_) = kem_gen_with_seed(seqToArrayByte(seed, 32)).expect("should be a keypair")
-  let st: CKAState = (public_key: some(pk), private_key: none(SKSecretKey))
+  let st: CKAState = CKAState(public_key: some(pk), private_key: none(SKSecretKey))
   return st
 
 proc cka_init_b*(seed: seq[byte]): CKAState =
   let (_,sk) = kem_gen_with_seed(seqToArrayByte(seed, 32)).expect("should be a keypair")
-  let st: CKAState = (public_key: none(SkPublicKey), private_key: some(sk))
+  let st: CKAState = CKAState(public_key: none(SkPublicKey), private_key: some(sk))
   return st
 
-proc cka_send*(state: CKAState): (CKAState, CKAMessage, seq[byte]) =
+proc cka_send*(state: var CKAState): (CKAMessage, seq[byte]) =
   assert state.public_key.isSome == true
   let (ct, ss) = kem_encap(state.public_key.get())
   let (pk, sk) = kem_gen()
-  let st: CKAState = (public_key: state.public_key, private_key: some(sk))
+  update_state(state, CKAState(public_key: state.public_key, private_key: some(sk)))
   let mesg: CKAMessage = (ciphertext: ct, public_key: pk)
-  return (st, mesg, ss)
+  return (mesg, ss)
 
-proc cka_receive*(state: CKAState, mesg: CKAMessage): (CKAState, seq[byte]) =
+proc cka_receive*(state: var CKAState, mesg: CKAMessage): seq[byte] =
   assert state.private_key.isSome == true
   let ss = kem_decap(state.private_key.get(), mesg.ciphertext)
-  let st: CKAState = (public_key: some(mesg.public_key), private_key: some(state.private_key.get()))
-  return (st, ss)
+  let new_st = CKAState(public_key: some(mesg.public_key), private_key: some(state.private_key.get()))
+  update_state(state, new_st)
+  return ss
 
+# AEAD
 
+proc aead_key_gen*(): array[aes256.sizeKey, byte] =
+  var key: array[aes256.sizeKey, byte]
+  let _ = workingRng(key)
+  return key
+
+proc aead_encrypt*(key: array[aes256.sizeKey, byte], nonce: array[aes256.sizeBlock, byte], ad: seq[byte], mesg: seq[byte]): seq[byte] = 
+  var ctx: GCM[aes256]
+  ctx.init(key, nonce, ad)
+  var ct = newSeq[byte](len(mesg))
+  ctx.encrypt(mesg, ct)
+  return ct
+
+proc aead_decrypt*(key: array[aes256.sizeKey, byte], nonce: array[aes256.sizeBlock, byte], ad: seq[byte], ct: seq[byte]): seq[byte] =
+  var ctx: GCM[aes256]
+  ctx.init(key, nonce, ad)
+  var plaintext = newSeq[byte](len(ct))
+  ctx.decrypt(ct, plaintext)
+  return plaintext
 
 
 

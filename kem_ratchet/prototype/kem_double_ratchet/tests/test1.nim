@@ -1,16 +1,10 @@
-# This is just an example to get you started. You may wish to put all of your
-# tests into a single file, or separate them into multiple `test1`, `test2`
-# etc. files (better names are recommended, just make sure the name starts with
-# the letter 't').
-#
-# To run these tests, simply execute `nimble test`.
-
 
 import unittest
 import kem_double_ratchet
 import nimcrypto
 import sequtils
 import results
+import nimcrypto
 
 suite "modular KEM double ratchet":
   test "KEM correctness":
@@ -33,13 +27,33 @@ suite "modular KEM double ratchet":
   test "CKA correctness":
     var seed: array[32, byte]
     let _ = randomBytes(seed)
-    let alice_st = cka_init_a(toSeq(seed))
-    let bob_st = cka_init_b(toSeq(seed))
 
-    let (alice_st2, mesg1, ss) = cka_send(alice_st)
-    let (bob_st2, ss2) = cka_receive(bob_st, mesg1)
+    var alice_st = cka_init_a(toSeq(seed))
+    var bob_st = cka_init_b(toSeq(seed))
+
+    let (mesg1, ss) = cka_send(alice_st)
+    let ss2 = cka_receive(bob_st, mesg1)
     check ss == ss2
-    
-    let (bob_st3, mesg2, ss3) = cka_send(bob_st2)
-    let (alice_st3, ss4) = cka_receive(alice_st2, mesg2)
+
+    let (mesg2, ss3) = cka_send(bob_st)
+    let ss4 = cka_receive(alice_st, mesg2)
     check ss3 == ss4
+
+  test "AEAD correctness":
+    var aliceAad = "Alice Authentication Data"
+    var ad = newSeq[byte](len(aliceAad))
+    copyMem(addr ad[0], addr aliceAad[0], len(aliceAad))
+    var aliceData = "Alice hidden secret"
+    var plainText = newSeq[byte](len(aliceData))
+    let key = aead_key_gen()
+    var nonce: array[aes256.sizeBlock, byte]
+    let _ = workingRng(nonce)
+    let ct = aead_encrypt(key, nonce, ad, plaintext)
+    let plaintext2 = aead_decrypt(key, nonce, ad, ct)
+    check plaintext == plaintext2
+    let wrong_key = aead_key_gen()
+    try:
+      let plaintext3 = aead_decrypt(wrong_key, nonce, ad, ct)
+    except:
+      discard
+
