@@ -11,4 +11,5 @@ srcDir        = "src"
 
 requires "nim >= 2.0.8"
 requires "secp256k1"
-requires "nimcrypto"
+requires "nimcrypto >= 0.4.1"
+requires "bearssl >= 0.1.4"
