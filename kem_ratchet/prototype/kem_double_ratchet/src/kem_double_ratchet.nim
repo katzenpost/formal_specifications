@@ -4,7 +4,6 @@
 import secp256k1
 import nimcrypto
 import nimcrypto/blake2
-import nimcrypto/keccak
 import std/random
 import std/options
 import results
@@ -75,6 +74,9 @@ proc update_state(self: var CKAState, update: CKAState) =
 type CKAMessage = tuple
   public_key: SkPublicKey
   ciphertext: seq[byte]
+
+proc initDefaultCKAMessage(st: CKAState): CKAMessage =
+  return CKAMessage: (st.public_key.get(), newSeq[byte](65))
 
 proc toRaw*(mesg: CKAMessage): seq[byte] =
   let public_key_raw = toRaw(mesg.public_key)
@@ -269,6 +271,8 @@ type RatchetState* = object
   prev_send_count*: uint32
 
 proc initRatchet*(seed: array[64,byte], is_a: bool): RatchetState =
+  # id ← A
+  # (kroot , kCKA ) ← k
   var rng_key: array[aes256.sizeKey, byte]
   for i in 0..31:
     rng_key[i] = seed[i]
@@ -277,13 +281,26 @@ proc initRatchet*(seed: array[64,byte], is_a: bool): RatchetState =
   for i in 0..31:
     cka_key[i] = seed[j]
     j += 1
+  
+  # σroot ← P-Init(kroot )
   var prf_prng_state = new_prf_prng_state(rng_key)
+
+  # (σroot , k) ← P-Up(σroot , λ)
   var default_prf_prng_key: array[32, byte]
   let k = up(prf_prng_state, default_prf_prng_key)
   var st = RatchetState(is_a: is_a, epoch_count: 0, prev_send_count:0)
   st.root_rng_st = seqToArrayByte(k,32)
+
+  # v[·] ← λ
   st.fs_aead_states = new TableRef[uint32, FSAEADState]
-  st.fs_aead_states[uint32(0)] = fs_init_receive(seqToArrayByte(k, 32))
+
+  # v[0] ← FS-Init-R(k)
+  if is_a:
+    st.fs_aead_states[uint32(0)] = fs_init_receive(seqToArrayByte(k, 32))
+  else:
+    st.fs_aead_states[uint32(0)] = fs_init_send(seqToArrayByte(k, 32))
+
+  # γ ← CKA-Init-A(kCKA )
   if is_a:
     st.cka_state = cka_init_a(toSeq(cka_key))
   else:
@@ -325,22 +342,47 @@ proc decodeHeader*(header: seq[byte]): RatchetHeader =
   return h
 
 proc send*(st: var RatchetState, mesg: seq[byte]): (seq[byte],seq[byte]) =
+  var do_update = false
+  var check_even = false
+  if st.is_a:
+    check_even = true
+  else:
+    check_even = false
+  var is_even = false
   if st.epoch_count mod 2 == 0:
-    try:
-      st.prev_send_count = st.fs_aead_states[st.epoch_count-1].fs_stop()
-    except ref KeyError:
-      echo "key not found in fs_aead_states"
-      quit(1)
+    is_even = true
+  else:
+    is_even = false
+  if check_even and is_even:
+    do_update = true
+  if not check_even and  not is_even:
+    do_update = true
+  # if tcur is even
+  if do_update:
+    if st.epoch_count != 0 and st.epoch_count != 1:
+      # `prv ← FS-Stop(v[tcur − 1])
+      try:
+        st.prev_send_count = st.fs_aead_states[st.epoch_count-1].fs_stop()
+      except ref KeyError:
+        echo "key not found in fs_aead_states"
+        quit(1)
+    # tcur ++
     st.epoch_count += 1
+    # (γ, Tcur , I) ←$ CKA-S(γ)
     let (mesg, ss) = cka_send(st.cka_state)   
+    st.cka_mesg = mesg
     var p_st = new_prf_prng_state(st.root_rng_st)
+    # (σroot , k) ← P-Up(σroot , I)
     let k = up(p_st, seqToArrayByte(ss, 32))
+    # v[tcur ] ← FS-Init-S(k)
     st.fs_aead_states[st.epoch_count] = fs_init_send(seqToArrayByte(k, 32))
+  # h ← (tcur , Tcur , `prv )
   var h: RatchetHeader
   h.epoch_count = st.epoch_count
   h.prev_send_count = st.prev_send_count
   h.cka_mesg = st.cka_mesg
   let header_raw = encodeHeader(h)
+  # (v[tcur ], e) ← FS-Send(v[tcur ], h, m)
   try:
     return fs_send(st.fs_aead_states[st.epoch_count], header_raw, mesg)
   except ref KeyError:
@@ -352,15 +394,23 @@ proc receive*(st: var RatchetState, ad: seq[byte], ciphertext: seq[byte]): seq[b
   for i in 0..3:
     index_raw[i] = ad[i]
   var header_raw = newSeq[byte](len(ad)-4)
+  var offset = 0
+  for i in 4..len(ad)-1:
+    header_raw[offset] = ad[i]
+    offset += 1
   var header = decodeHeader(header_raw)
-  assert header.epoch_count mod 2 == 0 and header.epoch_count <= (st.epoch_count + 1)
+  if st.is_a:
+    assert header.epoch_count mod 2 == 0 and header.epoch_count <= (st.epoch_count + 1)
+  else:
+    assert header.epoch_count mod 2 == 1 and header.epoch_count <= (st.epoch_count + 1)
   if header.epoch_count == (st.epoch_count + 1):
     st.epoch_count += 1
-    try:
-      fs_max(st.fs_aead_states[header.epoch_count-2], header.prev_send_count)
-    except ref KeyError:
-      echo "key not found in fs_aead_states"
-      quit(1)
+    if st.epoch_count != 1:
+      try:
+        fs_max(st.fs_aead_states[header.epoch_count-2], header.prev_send_count)
+      except ref KeyError:
+        echo "key not found in fs_aead_states"
+        quit(1)
     let ss = cka_receive(st.cka_state, header.cka_mesg)
     var p_st = new_prf_prng_state(st.root_rng_st)
     let k = up(p_st, seqToArrayByte(ss, 32))

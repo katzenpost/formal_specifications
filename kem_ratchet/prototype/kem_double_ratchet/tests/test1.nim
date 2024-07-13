@@ -141,10 +141,18 @@ suite "modular KEM double ratchet":
     var alice_ratchet = initRatchet(seed, true)
     var bob_ratchet = initRatchet(seed, false)
 
-    var alice_mesg_raw = "Alice Secret Message"
+    var alice_mesg_raw = "Alice's secret message to Bob"
     var alice_mesg = newSeq[byte](len(alice_mesg_raw))
     copyMem(addr alice_mesg[0], addr alice_mesg_raw[0], len(alice_mesg_raw))
-    let (ad,ct) = send(alice_ratchet, alice_mesg)
-    let plaintext = receive(bob_ratchet, ad, ct)
+    let (ad1,ct1) = send(alice_ratchet, alice_mesg)
+    let plaintext1 = receive(bob_ratchet, ad1, ct1)
     check:
-      plaintext == alice_mesg
+      plaintext1 == alice_mesg
+
+    var bob_mesg_raw = "Bob's secret message to Alice"
+    var bob_mesg = newSeq[byte](len(bob_mesg_raw))
+
+    let (ad2,ct2) = send(bob_ratchet, bob_mesg)
+    let plaintext2 = receive(alice_ratchet, ad2, ct2)
+    check:
+      bob_mesg == plaintext2
