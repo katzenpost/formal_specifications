@@ -133,6 +133,14 @@ type CipherStream.
 fun to_stream_key(bitstring):StreamKey.
 fun prg(StreamKey):bitstring.
 
+(* PRF PRNG *)
+
+fun hash(bitstring):bitstring.
+type PRF_PRNG_State.
+type PRF_PRNG_Output.
+fun p_init(bitstring):PRF_PRNG_State.
+fun p_up(PRF_PRNG_State,bitstring):PRF_PRNG_Output.
+
 
 (* FS-AEAD definitions *)
 
@@ -222,6 +230,10 @@ let fs_receive(ad: AdditionalData, ciphertext:bitstring, state_index:nat, state_
 
 
 (* modular KEM double ratchet *)
+
+type RatchetState.
+type RatchetHeader.
+
 
 let init_A(k: bitstring) =
     let k_root = divhead(k) in
