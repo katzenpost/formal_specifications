@@ -1,0 +1,124 @@
+(* MKEM scheme for pigeonhole mixnet protocols *)
+
+set traceBacktracking = false.
+set reconstructTrace = false.
+set attacker = passive.
+
+(* NIKE *)
+
+type PublicKey.
+type PrivateKey.
+type SharedSecret.
+fun to_PublicKey(PrivateKey):PublicKey.
+fun derive_secret(PrivateKey, PublicKey): SharedSecret.
+equation forall sk1:PrivateKey, sk2:PrivateKey;  derive_secret(sk2, to_PublicKey(sk1)) = derive_secret(sk1, to_PublicKey(sk2)).
+
+(* hash *)
+
+type HashedSecret.
+fun hash(SharedSecret): HashedSecret.
+
+(* AEAD *)
+
+type key.
+fun key_from_bitstring(bitstring):key.
+fun key_from_hash(HashedSecret):key.
+fun senc(key, bitstring): bitstring.
+reduc forall m: bitstring, k: key; sdec(k,senc(k,m)) = m.
+
+(* MKEM *)
+
+type MKEM_Ciphertext.
+(* ephemeral pub key, dek1, dek2, secret_ciphertext *)
+fun to_MKEM_ciphertext(PublicKey, bitstring, bitstring, bitstring):MKEM_Ciphertext.
+
+(* channels *)
+
+free replica1_chan: channel.
+free replica2_chan: channel.
+
+const witness_secret1_chan:channel [private].
+const witness_secret2_chan:channel [private].
+
+
+(* Processes *)
+
+let mkem_encap(pubkey1:PublicKey, pubkey2:PublicKey, shared_secret:bitstring) =
+    new eph_private_key:PrivateKey;
+    new msg_key:bitstring;    
+    let eph_public_key = to_PublicKey(eph_private_key) in
+    let secret1 = hash(derive_secret(eph_private_key, pubkey1)) in
+    let secret2 = hash(derive_secret(eph_private_key, pubkey2)) in
+    let secret_ciphertext = senc(key_from_bitstring(msg_key), shared_secret) in
+    let dek1 = senc(key_from_hash(secret1), msg_key) in
+    let dek2 = senc(key_from_hash(secret2), msg_key) in
+    let ciphertext = to_MKEM_ciphertext(eph_public_key,dek1,dek2,secret_ciphertext) in
+    out(replica1_chan, ciphertext);
+    out(replica2_chan, ciphertext).
+
+let mkem_decap1(privkey: PrivateKey, c: MKEM_Ciphertext) =
+    let (eph_public_key, dek1, dek2, secret_ciphertext) = c in
+    let hashed_secret1 = hash(dh_shared_secret(privkey, eph_public_key)) in
+    let msg_key1 = sdec(hashed_secret1, dek1) in
+    sdec(msg_key1, secret_ciphertext).
+
+let mkem_decap2(privkey: PrivateKey, c: MKEM_Ciphertext) =
+    let (eph_public_key, dek1, dek2, secret_ciphertext) = c in
+    let hashed_secret2 = hash(dh_shared_secret(privkey, eph_public_key)) in
+    let msg_key2 = sdec(hashed_secret2, dek2) in
+    sdec(msg_key2, secret_ciphertext).
+
+free shared_secret:bitstring [private].
+
+let replica1(privkey:PrivateKey) =
+    in(replica1_chan, c:MKEM_Ciphertext);
+    let my_secret = mkem_decap1(privkey, c) in
+    out(witness_secret1_chan, my_secret).
+
+let replica2(privkey:PrivateKey) =
+    in(replica2_chan, c:MKEM_Ciphertext);
+    let my_secret = mkem_decap2(privkey, c) in
+    out(witness_secret2_chan, my_secret).
+
+event WitnessSecret1Correct().
+event WitnessSecret1Incorrect().
+event WitnessSecret2Correct().
+event WitnessSecret2Incorrect().
+
+let witness1() =
+    in(witness_secret1_chan, secret1:bitstring);
+    if (witness_secret1_chan = shared_secret) then (
+       event WitnessSecret1Correct()
+    ) else (
+       event WitnessSecret1Incorrect()
+    ).
+
+let witness2() =
+    in(witness_secret2_chan, secret2:bitstring);
+    if (witness_secret2_chan = shared_secret) then (
+       event WitnessSecret2Correct()
+    ) else (
+       event WitnessSecret2Incorrect()
+    ).
+
+let alice() =
+    new replica1_priv: PrivateKey;
+    new replica2_priv: PrivateKey;
+    let replica1_pub = to_PublicKey(replica1_priv) in
+    let replica2_pub = to_PublicKey(replica2_priv) in
+    mkem_encap(replica1_pub, replica2_pub, shared_secret).
+
+(* queries *)
+
+(* query attacker(shared_secret). *)
+
+
+(* Run both processes in parallel *)
+process
+    (
+    replica1(replica1_priv)
+    | replica1(replica2_priv)
+    | alice()
+    | witness1()
+    | witness2()
+    )

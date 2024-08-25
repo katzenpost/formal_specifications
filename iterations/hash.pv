@@ -1,0 +1,36 @@
+
+
+free t1:channel[private].
+free t2:channel[private].
+free seed:bitstring [private].
+
+fun hash(bitstring):bitstring.
+
+event COL.
+query event(COL).
+
+let SKEY(s:bitstring) =
+in(t1, x2:nat);
+
+let x3:nat = x2-1 in
+if (x3 <> 0) then
+(
+  out(t1, x3);
+  in(t2,(x4:nat,sk:bitstring));
+  if(x4=x3) then
+  (
+    let otp3 = hash(sk) in
+    out(t2,(x2,otp3));
+    if(otp3=hash(hash(hash(seed)))) then
+      event COL
+    )
+  )
+  else
+    out(t2, (x2,hash(seed))).
+
+process
+   let a1:nat = 3 in
+   !(
+    out(t1, a1)
+   )
+   | !SKEY(seed)

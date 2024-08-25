@@ -1,0 +1,1025 @@
+@!@!@STARTMSG 2262:0 @!@!@
+TLC2 Version 2.16 of 31 December 2020 (rev: cdddf55)
+@!@!@ENDMSG 2262 @!@!@
+@!@!@STARTMSG 2187:0 @!@!@
+Running breadth-first search Model-Checking with fp 14 and seed 4749510431425759063 with 1 worker on 8 cores with 7100MB heap and 64MB offheap memory [pid: 478392] (Linux 5.19.0-35-generic amd64, Ubuntu 11.0.21 x86_64, MSBDiskFPSet, DiskStateQueue).
+@!@!@ENDMSG 2187 @!@!@
+@!@!@STARTMSG 2220:0 @!@!@
+Starting SANY...
+@!@!@ENDMSG 2220 @!@!@
+Parsing file /home/human/code/formal_specifications/client2/tlaplus/client2.tla
+Parsing file /tmp/Integers.tla
+Parsing file /tmp/Sequences.tla
+Parsing file /tmp/FiniteSets.tla
+Parsing file /tmp/Naturals.tla
+Semantic processing of module Naturals
+Semantic processing of module Integers
+Semantic processing of module Sequences
+Semantic processing of module FiniteSets
+Semantic processing of module client2
+@!@!@STARTMSG 2219:0 @!@!@
+SANY finished.
+@!@!@ENDMSG 2219 @!@!@
+@!@!@STARTMSG 2185:0 @!@!@
+Starting... (2024-02-22 14:52:15)
+@!@!@ENDMSG 2185 @!@!@
+@!@!@STARTMSG 2189:0 @!@!@
+Computing initial states...
+@!@!@ENDMSG 2189 @!@!@
+@!@!@STARTMSG 2190:0 @!@!@
+Finished computing initial states: 1 distinct state generated at 2024-02-22 14:52:15.
+@!@!@ENDMSG 2190 @!@!@
+@!@!@STARTMSG 2114:1 @!@!@
+Deadlock reached.
+@!@!@ENDMSG 2114 @!@!@
+@!@!@STARTMSG 2121:1 @!@!@
+The behavior up to this point is:
+@!@!@ENDMSG 2121 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+1: <Initial predicate>
+/\ channels = [sendChan |-> <<>>, wire_in_ch |-> <<>>, wire_out_ch |-> <<>>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = 0
+/\ is_connected = FALSE
+/\ pc = [wire_in |-> "Idle", wire_out |-> "Idle", connection |-> "Idle", client |-> "Idle"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+2: <DialStart line 37, col 5 to line 41, col 43 of module client2>
+/\ channels = [sendChan |-> <<>>, wire_in_ch |-> <<>>, wire_out_ch |-> <<>>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = "client"
+/\ is_connected = FALSE
+/\ pc = [wire_in |-> "Idle", wire_out |-> "Idle", connection |-> "Idle", client |-> "Dialing"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+3: <DialFinish line 44, col 5 to line 49, col 29 of module client2>
+/\ channels = [sendChan |-> <<>>, wire_in_ch |-> <<>>, wire_out_ch |-> <<>>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "Idle", wire_out |-> "Idle", connection |-> "Idle", client |-> "Idle"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+4: <SendMessageStart line 67, col 5 to line 71, col 43 of module client2>
+/\ channels = [sendChan |-> <<>>, wire_in_ch |-> <<>>, wire_out_ch |-> <<>>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = "client"
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "Idle", wire_out |-> "Idle", connection |-> "Idle", client |-> "PrepareSendingMessage1"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+5: <PrepareSendingMessage1 line 74, col 5 to line 77, col 43 of module client2>
+/\ channels = [sendChan |-> <<>>, wire_in_ch |-> <<>>, wire_out_ch |-> <<>>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "Idle", wire_out |-> "Idle", connection |-> "Idle", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+6: <PrepareSendingMessage2 line 80, col 5 to line 83, col 47 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<>>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "Idle", wire_out |-> "Idle", connection |-> "Idle", client |-> "FinishSendingMessage"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+7: <FinishSendingMessage line 86, col 5 to line 88, col 57 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<>>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "Idle", wire_out |-> "Idle", connection |-> "Idle", client |-> "Idle"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+8: <SendMessageStart line 67, col 5 to line 71, col 43 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<>>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = "client"
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "Idle", wire_out |-> "Idle", connection |-> "Idle", client |-> "PrepareSendingMessage1"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+9: <PrepareSendingMessage1 line 74, col 5 to line 77, col 43 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<>>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "Idle", wire_out |-> "Idle", connection |-> "Idle", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+10: <SenderReceiveStart line 94, col 5 to line 97, col 47 of module client2>
+/\ channels = [sendChan |-> <<>>, wire_in_ch |-> <<>>, wire_out_ch |-> <<>>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "Idle", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+11: <PrepareSendingMessage2 line 80, col 5 to line 83, col 47 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<>>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "Idle", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "FinishSendingMessage"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+12: <FinishSendingMessage line 86, col 5 to line 88, col 57 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<>>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "Idle", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "Idle"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+13: <SendMessageStart line 67, col 5 to line 71, col 43 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<>>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = "client"
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "Idle", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage1"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+14: <PrepareSendingMessage1 line 74, col 5 to line 77, col 43 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<>>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "Idle", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+15: <SenderReceiveFinish line 100, col 5 to line 103, col 47 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "Idle", wire_out |-> "Idle", connection |-> "Idle", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+16: <SenderReceiveStart line 94, col 5 to line 97, col 47 of module client2>
+/\ channels = [sendChan |-> <<>>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "Idle", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+17: <PrepareSendingMessage2 line 80, col 5 to line 83, col 47 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "Idle", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "FinishSendingMessage"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+18: <FinishSendingMessage line 86, col 5 to line 88, col 57 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "Idle", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "Idle"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+19: <SendMessageStart line 67, col 5 to line 71, col 43 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = "client"
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "Idle", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage1"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+20: <PrepareSendingMessage1 line 74, col 5 to line 77, col 43 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "Idle", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+21: <WireReceiverInteraction line 140, col 5 to line 144, col 47 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<>>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+22: <SenderReceiveFinish line 100, col 5 to line 103, col 47 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "Idle", connection |-> "Idle", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+23: <SenderReceiveStart line 94, col 5 to line 97, col 47 of module client2>
+/\ channels = [sendChan |-> <<>>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+24: <PrepareSendingMessage2 line 80, col 5 to line 83, col 47 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "FinishSendingMessage"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+25: <FinishSendingMessage line 86, col 5 to line 88, col 57 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "Idle"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+26: <SendMessageStart line 67, col 5 to line 71, col 43 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = "client"
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage1"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+27: <PrepareSendingMessage1 line 74, col 5 to line 77, col 43 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<>>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+28: <WireReceiverInteraction line 140, col 5 to line 144, col 47 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "Idle", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+29: <WireReceiverInteraction line 140, col 5 to line 144, col 47 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<>>, wire_bridge_ch |-> <<"message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+30: <SenderReceiveFinish line 100, col 5 to line 103, col 47 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "Idle", connection |-> "Idle", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+31: <SenderReceiveStart line 94, col 5 to line 97, col 47 of module client2>
+/\ channels = [sendChan |-> <<>>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+32: <PrepareSendingMessage2 line 80, col 5 to line 83, col 47 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "FinishSendingMessage"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+33: <FinishSendingMessage line 86, col 5 to line 88, col 57 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "Idle"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+34: <SendMessageStart line 67, col 5 to line 71, col 43 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message">>]
+/\ client_mutex = "client"
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage1"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+35: <PrepareSendingMessage1 line 74, col 5 to line 77, col 43 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+36: <WireReceiverInteraction line 140, col 5 to line 144, col 47 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message", "message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "Idle", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+37: <WireReceiverInteraction line 140, col 5 to line 144, col 47 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<>>, wire_bridge_ch |-> <<"message", "message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+38: <SenderReceiveFinish line 100, col 5 to line 103, col 47 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message", "message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "Idle", connection |-> "Idle", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+39: <SenderReceiveStart line 94, col 5 to line 97, col 47 of module client2>
+/\ channels = [sendChan |-> <<>>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message", "message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+40: <PrepareSendingMessage2 line 80, col 5 to line 83, col 47 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message", "message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "FinishSendingMessage"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+41: <FinishSendingMessage line 86, col 5 to line 88, col 57 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message", "message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "Idle"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+42: <SendMessageStart line 67, col 5 to line 71, col 43 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message", "message">>]
+/\ client_mutex = "client"
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage1"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+43: <PrepareSendingMessage1 line 74, col 5 to line 77, col 43 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message", "message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+44: <WireReceiverInteraction line 140, col 5 to line 144, col 47 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "ProxyingOut", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+45: <WireReceiverInteraction line 140, col 5 to line 144, col 47 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message", "message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "Idle", wire_out |-> "ProxyingOut", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+46: <WireReceiverInteraction line 140, col 5 to line 144, col 47 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<>>, wire_bridge_ch |-> <<"message", "message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "ProxyingOut", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+47: <SenderReceiveFinish line 100, col 5 to line 103, col 47 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message", "message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "ProxyingOut", connection |-> "Idle", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+48: <SenderReceiveStart line 94, col 5 to line 97, col 47 of module client2>
+/\ channels = [sendChan |-> <<>>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message", "message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "ProxyingOut", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+49: <PrepareSendingMessage2 line 80, col 5 to line 83, col 47 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message", "message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "ProxyingOut", connection |-> "ProcessingMessage", client |-> "FinishSendingMessage"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+50: <FinishSendingMessage line 86, col 5 to line 88, col 57 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message", "message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "ProxyingOut", connection |-> "ProcessingMessage", client |-> "Idle"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+51: <SendMessageStart line 67, col 5 to line 71, col 43 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message", "message">>]
+/\ client_mutex = "client"
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "ProxyingOut", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage1"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+52: <PrepareSendingMessage1 line 74, col 5 to line 77, col 43 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<>>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message", "message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "ProxyingOut", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+53: <WireReceiverInteraction line 140, col 5 to line 144, col 47 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<"message">>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message", "message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "Idle", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+54: <WireReceiverInteraction line 140, col 5 to line 144, col 47 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<"message">>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "ProxyingOut", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+55: <WireReceiverInteraction line 140, col 5 to line 144, col 47 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<"message">>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message", "message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "Idle", wire_out |-> "ProxyingOut", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+56: <WireReceiverInteraction line 140, col 5 to line 144, col 47 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<"message">>, wire_out_ch |-> <<>>, wire_bridge_ch |-> <<"message", "message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "ProxyingOut", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+57: <SenderReceiveFinish line 100, col 5 to line 103, col 47 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<"message">>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message", "message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "ProxyingOut", connection |-> "Idle", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+58: <SenderReceiveStart line 94, col 5 to line 97, col 47 of module client2>
+/\ channels = [sendChan |-> <<>>, wire_in_ch |-> <<"message">>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message", "message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "ProxyingOut", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+59: <PrepareSendingMessage2 line 80, col 5 to line 83, col 47 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<"message">>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message", "message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "ProxyingOut", connection |-> "ProcessingMessage", client |-> "FinishSendingMessage"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+60: <FinishSendingMessage line 86, col 5 to line 88, col 57 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<"message">>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message", "message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "ProxyingOut", connection |-> "ProcessingMessage", client |-> "Idle"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+61: <SendMessageStart line 67, col 5 to line 71, col 43 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<"message">>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message", "message">>]
+/\ client_mutex = "client"
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "ProxyingOut", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage1"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2217:4 @!@!@
+62: <PrepareSendingMessage1 line 74, col 5 to line 77, col 43 of module client2>
+/\ channels = [sendChan |-> <<"message">>, wire_in_ch |-> <<"message">>, wire_out_ch |-> <<"message">>, wire_bridge_ch |-> <<"message", "message">>]
+/\ client_mutex = 0
+/\ is_connected = TRUE
+/\ pc = [wire_in |-> "ProxyingIn", wire_out |-> "ProxyingOut", connection |-> "ProcessingMessage", client |-> "PrepareSendingMessage2"]
+
+@!@!@ENDMSG 2217 @!@!@
+@!@!@STARTMSG 2201:0 @!@!@
+The coverage statistics at 2024-02-22 14:52:15
+@!@!@ENDMSG 2201 @!@!@
+@!@!@STARTMSG 2773:0 @!@!@
+<Init line 9, col 1 to line 9, col 4 of module client2>: 2:2
+@!@!@ENDMSG 2773 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 10, col 5 to line 13, col 78 of module client2: 2
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2772:0 @!@!@
+<DialStart line 36, col 1 to line 36, col 12 of module client2>: 9:287
+@!@!@ENDMSG 2772 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 37, col 8 to line 37, col 21 of module client2: 2347
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 37, col 8 to line 37, col 12 of module client2: 2060
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 27, col 8 to line 27, col 15 of module client2: 869
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 27, col 8 to line 27, col 11 of module client2: 582
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 28, col 8 to line 28, col 16 of module client2: 287
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 28, col 16 to line 28, col 16 of module client2: 582
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 38, col 21 to line 38, col 21 of module client2: 582
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 38, col 24 to line 38, col 35 of module client2: 582
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 39, col 8 to line 39, col 27 of module client2: 869
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 39, col 8 to line 39, col 19 of module client2: 582
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 39, col 23 to line 39, col 27 of module client2: 582
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 40, col 8 to line 40, col 41 of module client2: 287
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 41, col 8 to line 41, col 43 of module client2: 287
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2772:0 @!@!@
+<DialFinish line 43, col 1 to line 43, col 13 of module client2>: 1:285
+@!@!@ENDMSG 2772 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 44, col 8 to line 44, col 24 of module client2: 2344
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 44, col 8 to line 44, col 12 of module client2: 2059
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 45, col 8 to line 45, col 27 of module client2: 570
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 45, col 8 to line 45, col 19 of module client2: 285
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 45, col 23 to line 45, col 27 of module client2: 285
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 46, col 8 to line 46, col 27 of module client2: 285
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 31, col 8 to line 31, col 15 of module client2: 570
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 31, col 8 to line 31, col 11 of module client2: 285
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 31, col 15 to line 31, col 15 of module client2: 285
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 32, col 8 to line 32, col 16 of module client2: 285
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 47, col 21 to line 47, col 21 of module client2: 285
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 47, col 24 to line 47, col 35 of module client2: 285
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 48, col 8 to line 48, col 38 of module client2: 285
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 49, col 8 to line 49, col 29 of module client2: 285
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2772:0 @!@!@
+<HangupStart line 51, col 1 to line 51, col 14 of module client2>: 9:295
+@!@!@ENDMSG 2772 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 52, col 8 to line 52, col 21 of module client2: 2353
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 52, col 8 to line 52, col 12 of module client2: 2058
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 27, col 8 to line 27, col 15 of module client2: 876
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 27, col 8 to line 27, col 11 of module client2: 581
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 28, col 8 to line 28, col 16 of module client2: 295
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 28, col 16 to line 28, col 16 of module client2: 581
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 53, col 21 to line 53, col 21 of module client2: 581
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 53, col 24 to line 53, col 35 of module client2: 581
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 54, col 8 to line 54, col 26 of module client2: 876
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 54, col 8 to line 54, col 19 of module client2: 581
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 54, col 23 to line 54, col 26 of module client2: 581
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 55, col 8 to line 55, col 43 of module client2: 295
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 56, col 8 to line 56, col 43 of module client2: 295
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2772:0 @!@!@
+<HangupFinish line 58, col 1 to line 58, col 15 of module client2>: 8:286
+@!@!@ENDMSG 2772 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 59, col 8 to line 59, col 26 of module client2: 2344
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 59, col 8 to line 59, col 12 of module client2: 2058
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 60, col 8 to line 60, col 26 of module client2: 572
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 60, col 8 to line 60, col 19 of module client2: 286
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 60, col 23 to line 60, col 26 of module client2: 286
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 61, col 8 to line 61, col 28 of module client2: 286
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 31, col 8 to line 31, col 15 of module client2: 572
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 31, col 8 to line 31, col 11 of module client2: 286
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 31, col 15 to line 31, col 15 of module client2: 286
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 32, col 8 to line 32, col 16 of module client2: 286
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 62, col 21 to line 62, col 21 of module client2: 286
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 62, col 24 to line 62, col 35 of module client2: 286
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 63, col 8 to line 63, col 38 of module client2: 286
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 64, col 8 to line 64, col 29 of module client2: 286
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2772:0 @!@!@
+<SendMessageStart line 66, col 1 to line 66, col 19 of module client2>: 9:295
+@!@!@ENDMSG 2772 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 67, col 8 to line 67, col 21 of module client2: 2353
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 67, col 8 to line 67, col 12 of module client2: 2058
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 27, col 8 to line 27, col 15 of module client2: 876
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 27, col 8 to line 27, col 11 of module client2: 581
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 28, col 8 to line 28, col 16 of module client2: 295
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 28, col 16 to line 28, col 16 of module client2: 581
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 68, col 21 to line 68, col 21 of module client2: 581
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 68, col 24 to line 68, col 35 of module client2: 581
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 69, col 8 to line 69, col 26 of module client2: 876
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 69, col 8 to line 69, col 19 of module client2: 581
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 69, col 23 to line 69, col 26 of module client2: 581
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 70, col 8 to line 70, col 56 of module client2: 295
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 71, col 8 to line 71, col 43 of module client2: 295
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2772:0 @!@!@
+<PrepareSendingMessage1 line 73, col 1 to line 73, col 25 of module client2>: 9:295
+@!@!@ENDMSG 2772 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 74, col 8 to line 74, col 39 of module client2: 2344
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 74, col 8 to line 74, col 12 of module client2: 2049
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 31, col 8 to line 31, col 15 of module client2: 590
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 31, col 8 to line 31, col 11 of module client2: 295
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 31, col 15 to line 31, col 15 of module client2: 295
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 32, col 8 to line 32, col 16 of module client2: 295
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 75, col 21 to line 75, col 21 of module client2: 295
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 75, col 24 to line 75, col 35 of module client2: 295
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 76, col 8 to line 76, col 56 of module client2: 295
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 77, col 8 to line 77, col 43 of module client2: 295
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2772:0 @!@!@
+<PrepareSendingMessage2 line 79, col 1 to line 79, col 25 of module client2>: 8:151
+@!@!@ENDMSG 2772 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 80, col 8 to line 80, col 39 of module client2: 2191
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 80, col 8 to line 80, col 12 of module client2: 2040
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 19, col 8 to line 19, col 117 of module client2: 151
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 19, col 8 to line 19, col 33 of module client2: 318
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 19, col 37 to line 19, col 117 of module client2: 318
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 20, col 8 to line 20, col 72 of module client2: 151
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 82, col 8 to line 82, col 54 of module client2: 151
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 83, col 8 to line 83, col 47 of module client2: 151
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2772:0 @!@!@
+<FinishSendingMessage line 85, col 1 to line 85, col 23 of module client2>: 8:294
+@!@!@ENDMSG 2772 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 86, col 8 to line 86, col 37 of module client2: 2326
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 86, col 8 to line 86, col 12 of module client2: 2032
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 87, col 8 to line 87, col 38 of module client2: 294
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 88, col 8 to line 88, col 57 of module client2: 294
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2772:0 @!@!@
+<SenderReceiveStart line 93, col 1 to line 93, col 21 of module client2>: 49:343
+@!@!@ENDMSG 2772 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 94, col 8 to line 94, col 21 of module client2: 2367
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 94, col 8 to line 94, col 12 of module client2: 2024
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 23, col 8 to line 23, col 37 of module client2: 343
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 23, col 8 to line 23, col 33 of module client2: 679
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 24, col 8 to line 24, col 81 of module client2: 343
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 96, col 8 to line 96, col 51 of module client2: 343
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 97, col 8 to line 97, col 47 of module client2: 343
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2772:0 @!@!@
+<SenderReceiveFinish line 99, col 1 to line 99, col 22 of module client2>: 84:342
+@!@!@ENDMSG 2772 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 100, col 8 to line 100, col 34 of module client2: 2359
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 100, col 8 to line 100, col 12 of module client2: 2017
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 19, col 8 to line 19, col 117 of module client2: 342
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 19, col 8 to line 19, col 33 of module client2: 689
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 19, col 37 to line 19, col 117 of module client2: 689
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 20, col 8 to line 20, col 72 of module client2: 342
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 102, col 8 to line 102, col 38 of module client2: 342
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 103, col 8 to line 103, col 47 of module client2: 342
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2772:0 @!@!@
+<ReceiveCommand line 105, col 1 to line 105, col 17 of module client2>: 182:336
+@!@!@ENDMSG 2772 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 106, col 8 to line 106, col 21 of module client2: 2347
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 106, col 8 to line 106, col 12 of module client2: 2011
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 23, col 8 to line 23, col 37 of module client2: 336
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 23, col 8 to line 23, col 33 of module client2: 672
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 24, col 8 to line 24, col 81 of module client2: 336
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 108, col 8 to line 108, col 51 of module client2: 336
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 109, col 8 to line 109, col 47 of module client2: 336
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2772:0 @!@!@
+<ProcessingCommand line 111, col 1 to line 111, col 20 of module client2>: 0:656
+@!@!@ENDMSG 2772 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 112, col 8 to line 112, col 34 of module client2: 2667
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 112, col 8 to line 112, col 12 of module client2: 2011
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 113, col 8 to line 113, col 38 of module client2: 656
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 114, col 8 to line 114, col 57 of module client2: 656
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2772:0 @!@!@
+<WireReceiverInteraction line 139, col 1 to line 139, col 23 of module client2>: 1625:2878
+@!@!@ENDMSG 2772 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 119, col 8 to line 119, col 21 of module client2: 2520
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 119, col 8 to line 119, col 12 of module client2: 2011
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 23, col 8 to line 23, col 37 of module client2: 509
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 23, col 8 to line 23, col 33 of module client2: 1013
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 24, col 8 to line 24, col 81 of module client2: 509
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 121, col 9 to line 122, col 42 of module client2: 509
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 125, col 8 to line 125, col 27 of module client2: 2687
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 125, col 8 to line 125, col 12 of module client2: 2011
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 19, col 8 to line 19, col 117 of module client2: 676
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 19, col 8 to line 19, col 33 of module client2: 998
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 19, col 37 to line 19, col 117 of module client2: 998
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 20, col 8 to line 20, col 72 of module client2: 676
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 127, col 8 to line 127, col 38 of module client2: 676
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 130, col 8 to line 130, col 21 of module client2: 2688
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 130, col 8 to line 130, col 12 of module client2: 2011
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 23, col 8 to line 23, col 37 of module client2: 677
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 23, col 8 to line 23, col 33 of module client2: 1015
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 24, col 8 to line 24, col 81 of module client2: 677
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 132, col 8 to line 132, col 45 of module client2: 677
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 135, col 8 to line 135, col 28 of module client2: 2518
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 135, col 8 to line 135, col 12 of module client2: 2011
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 19, col 8 to line 19, col 117 of module client2: 507
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 19, col 8 to line 19, col 33 of module client2: 996
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  |line 19, col 37 to line 19, col 117 of module client2: 996
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 20, col 8 to line 20, col 72 of module client2: 507
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 137, col 8 to line 137, col 38 of module client2: 507
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2221:0 @!@!@
+  line 144, col 8 to line 144, col 47 of module client2: 2878
+@!@!@ENDMSG 2221 @!@!@
+@!@!@STARTMSG 2202:0 @!@!@
+End of statistics.
+@!@!@ENDMSG 2202 @!@!@
+@!@!@STARTMSG 2200:0 @!@!@
+Progress(63) at 2024-02-22 14:52:15: 6,664 states generated (352,903 s/min), 2,002 distinct states found (106,019 ds/min), 3 states left on queue.
+@!@!@ENDMSG 2200 @!@!@
+@!@!@STARTMSG 2199:0 @!@!@
+6664 states generated, 2002 distinct states found, 3 states left on queue.
+@!@!@ENDMSG 2199 @!@!@
+@!@!@STARTMSG 2194:0 @!@!@
+The depth of the complete state graph search is 63.
+@!@!@ENDMSG 2194 @!@!@
+@!@!@STARTMSG 2268:0 @!@!@
+The average outdegree of the complete state graph is 1 (minimum is 0, the maximum 4 and the 95th percentile is 2).
+@!@!@ENDMSG 2268 @!@!@
+@!@!@STARTMSG 2186:0 @!@!@
+Finished in 1153ms at (2024-02-22 14:52:15)
+@!@!@ENDMSG 2186 @!@!@

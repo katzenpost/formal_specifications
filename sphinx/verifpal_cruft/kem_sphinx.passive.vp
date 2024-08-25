@@ -1,0 +1,205 @@
+// SPDX-FileCopyrightText: © 2023 David Stainton <dstainton415@gmail.com>
+// SPDX-License-Identifier: GPL-3.0-only
+
+attacker[passive]
+
+principal MixNode1[
+    // mix's KEM key pair
+    generates mix1_privkey
+    mix1_pubkey = G^mix1_privkey
+    leaks mix1_pubkey // keys published via dirauth protocol
+]
+
+principal MixNode2[
+    // mix's KEM key pair
+    generates mix2_privkey
+    mix2_pubkey = G^mix2_privkey
+    leaks mix2_pubkey // keys published via dirauth protocol
+]
+
+principal MixNode3[
+    // mix's KEM key pair
+    generates mix3_privkey
+    mix3_pubkey = G^mix3_privkey
+    leaks mix3_pubkey // keys published via dirauth protocol
+]
+
+principal Alice[
+    // Alice's plaintext message
+    generates plaintext
+]
+
+// Sphinx assumes that all the mix keys
+// are preshared:
+MixNode1 -> Alice: [mix1_pubkey]
+MixNode2 -> Alice: [mix2_pubkey]
+MixNode3 -> Alice: [mix3_pubkey]
+
+phase[1]
+
+principal Alice[
+    // make a sphinx packet header
+    generates additional_data
+
+    // generate the per hop secrets and KEM ciphertexts
+
+    // first hop
+    generates shared_secret1
+    kem_ciphertext1 = PKE_ENC(mix1_pubkey, shared_secret1)
+    integrity_key1, routing_info_key1, payload_key1 = HKDF(nil, shared_secret1, nil)
+    
+    // second hop
+    generates shared_secret2
+    kem_ciphertext2 = PKE_ENC(mix2_pubkey, shared_secret2)
+    integrity_key2, routing_info_key2, payload_key2 = HKDF(nil, shared_secret2, nil)
+
+    // third hop
+    generates shared_secret3
+    kem_ciphertext3 = PKE_ENC(mix3_pubkey, shared_secret3)
+    integrity_key3, routing_info_key3, payload_key3 = HKDF(nil, shared_secret3, nil)
+
+    // create the routing information block
+
+    // third hop
+    generates routing_cmds3
+    routing_info3 = ENC(routing_info_key3, routing_cmds3)
+    integrity_tag3 = MAC(integrity_key3, CONCAT(routing_info3, additional_data, kem_ciphertext3))
+
+    // second hop
+    routing_cmds2 = CONCAT(kem_ciphertext3, integrity_tag3, mix3_pubkey, routing_info3)
+    routing_info2 = ENC(routing_info_key2, routing_cmds2)
+    integrity_tag2 = MAC(integrity_key2, CONCAT(routing_info2, additional_data, kem_ciphertext2))
+
+    // first hop
+    routing_cmds1 = CONCAT(kem_ciphertext2, integrity_tag2, mix2_pubkey, routing_info2)
+    routing_info1 = ENC(routing_info_key1, routing_cmds1)
+    integrity_tag1 = MAC(integrity_key1, CONCAT(routing_info1, additional_data, kem_ciphertext1))
+
+    // Or do we want to try to model the nested SPRP construction
+    // with it's inner integrity tag as the first 16 bytes of the payload?
+    body3 = AEAD_ENC(payload_key3, plaintext, nil)
+    body2 = AEAD_ENC(payload_key2, body3, nil)
+    body1 = AEAD_ENC(payload_key1, body2, nil)
+]
+
+Alice -> MixNode1: additional_data, kem_ciphertext1, routing_info1, integrity_tag1, body1
+
+phase[2]
+
+principal MixNode1[
+    mix1_shared_secret = PKE_DEC(mix1_privkey, kem_ciphertext1)
+    mix1_integrity_key, mix1_routing_info_key, mix1_payload_key = HKDF(nil, mix1_shared_secret, nil)
+
+    _ = ASSERT(integrity_tag1, MAC(mix1_integrity_key, CONCAT(routing_info1, additional_data, kem_ciphertext1)))?
+
+    mix1_routing_cmds = DEC(mix1_routing_info_key, routing_info1)
+    mix1_kem_ciphertext, mix1_integrity_tag, mix1_mix2_pubkey, mix1_routing_info = SPLIT(mix1_routing_cmds)?
+
+    mix1_body = AEAD_DEC(mix1_payload_key, body1, nil)?
+]
+
+MixNode1 -> MixNode2: additional_data, mix1_kem_ciphertext, mix1_routing_info, mix1_integrity_tag, mix1_body
+
+phase[3]
+
+principal MixNode2[
+    mix2_shared_secret = PKE_DEC(mix2_privkey, mix1_kem_ciphertext)
+    mix2_integrity_key, mix2_routing_info_key, mix2_payload_key = HKDF(nil, mix2_shared_secret, nil)
+
+    _ = ASSERT(mix1_integrity_tag, MAC(mix2_integrity_key, CONCAT(mix1_routing_info, additional_data, mix1_kem_ciphertext)))?
+
+    mix2_routing_cmds = DEC(mix2_routing_info_key, mix1_routing_info)
+    mix2_kem_ciphertext, mix2_integrity_tag, mix2_mix3_pubkey, mix2_routing_info = SPLIT(mix2_routing_cmds)?
+    mix2_body = AEAD_DEC(mix2_payload_key, mix1_body, nil)?
+]
+
+MixNode2 -> MixNode3: additional_data, mix2_kem_ciphertext, mix2_routing_info, mix2_integrity_tag, mix2_body
+
+phase[4]
+
+principal MixNode3[
+    mix3_shared_secret = PKE_DEC(mix3_privkey, mix2_kem_ciphertext)
+    mix3_integrity_key, mix3_routing_info_key, mix3_payload_key = HKDF(nil, mix3_shared_secret, nil)
+
+    _ = ASSERT(mix2_integrity_tag, MAC(mix3_integrity_key, CONCAT(mix2_routing_info, additional_data, mix2_kem_ciphertext)))?
+
+    mix3_routing_cmds = DEC(mix3_routing_info_key, mix2_routing_info)
+    mix3_body = AEAD_DEC(mix3_payload_key, mix2_body, nil)?
+]
+
+queries[
+    authentication? MixNode1 -> MixNode2: mix1_kem_ciphertext[
+    precondition[Alice->MixNode1: kem_ciphertext1]
+    ]
+
+    authentication? MixNode1 -> MixNode2: mix1_routing_info[
+    precondition[Alice->MixNode1: routing_info1]
+    ]
+
+    authentication? MixNode1 -> MixNode2: mix1_integrity_tag[
+    precondition[Alice->MixNode1: integrity_tag1]
+    ]
+
+    authentication? MixNode1 -> MixNode2: additional_data[
+    precondition[Alice->MixNode1: additional_data]
+    ]
+
+    authentication? MixNode2 -> MixNode3: mix2_kem_ciphertext[
+    precondition[MixNode1->MixNode2: mix1_kem_ciphertext]
+    ]
+
+    authentication? MixNode2 -> MixNode3: mix2_routing_info[
+    precondition[MixNode1->MixNode2: mix1_routing_info]
+    ]
+
+    authentication? MixNode2 -> MixNode3: mix2_integrity_tag[
+    precondition[MixNode1->MixNode2: mix1_integrity_tag]
+    ]
+
+    authentication? MixNode2 -> MixNode3: additional_data[
+    precondition[MixNode1->MixNode2: additional_data]
+    ]
+
+
+    confidentiality? plaintext
+
+    confidentiality? mix1_privkey
+    confidentiality? mix2_privkey
+    confidentiality? mix3_privkey
+
+    confidentiality? shared_secret1
+    confidentiality? shared_secret2
+    confidentiality? shared_secret3
+
+    confidentiality? mix1_shared_secret
+    confidentiality? mix2_shared_secret
+    confidentiality? mix3_shared_secret
+
+    confidentiality? mix1_integrity_key
+    confidentiality? mix2_integrity_key
+    confidentiality? mix3_integrity_key
+
+    // VerifPal raises a false positive here:
+    //confidentiality? mix1_routing_cmds
+    //confidentiality? mix2_routing_cmds
+    // works fine, why?
+    confidentiality? mix3_routing_cmds
+
+    equivalence? routing_info2, mix1_routing_info
+    equivalence? routing_info3, mix2_routing_info
+
+    equivalence? mix1_routing_cmds, routing_cmds1
+    equivalence? mix2_routing_cmds, routing_cmds2
+    equivalence? mix3_routing_cmds, routing_cmds3
+
+    equivalence? shared_secret1, mix1_shared_secret
+    equivalence? shared_secret2, mix2_shared_secret
+    equivalence? shared_secret3, mix3_shared_secret
+
+    equivalence? mix3_body, plaintext
+
+    unlinkability? kem_ciphertext1, mix1_kem_ciphertext, mix2_kem_ciphertext
+    unlinkability? routing_info1, mix1_routing_info, mix2_routing_info
+    unlinkability? integrity_tag1, mix1_integrity_tag, mix2_integrity_tag
+    unlinkability? body1, mix1_body, mix2_body
+]

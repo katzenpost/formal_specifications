@@ -1,0 +1,42 @@
+(* KEM Ratchet
+*)
+
+
+(* ---------------------------------------------------------------- *)
+(* Parameters                                                       *)
+(* ---------------------------------------------------------------- *)
+
+set traceBacktracking = false.
+set reconstructTrace = false.
+set attacker = passive.
+
+(* KEM *)
+type PublicKey.
+type PrivateKey.
+fun to_PublicKey(PrivateKey):PublicKey.
+fun internal_kem_enc(PublicKey, bitstring):bitstring.
+fun internal_kem_dec(PrivateKey, bitstring):bitstring
+reduc forall sk:PrivateKey,m:bitstring;
+      internal_kem_dec(sk,internal_kem_enc(to_PublicKey(sk),m)) = m.
+
+letfun kempriv2pub(k:PrivateKey) = to_PublicKey(k).
+
+letfun kem_encap(pk:PublicKey) =
+       new ss:bitstring;
+       (internal_kem_enc(pk,ss),ss).
+
+letfun kem_decap(sk:PrivateKey,ct:bitstring) =
+       internal_kem_dec(sk,ct).
+
+(* events *)
+
+event secrets_match().
+event secrets_do_not_match().
+
+(* queries *)
+
+query event(secrets_match()).
+query event(secrets_do_not_match()).
+
+(* processes *)
+

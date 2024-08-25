@@ -1,0 +1,108 @@
+attacker[passive]
+
+principal PKI[]
+
+principal MixNode1[
+    // mix's NIKE key pair
+    generates mix1PrivKey
+    mix1PubKey = G^mix1PrivKey
+    leaks mix1PubKey // keys published via dirauth protocol
+]
+
+principal MixNode2[
+    // mix's NIKE key pair
+    generates mix2PrivKey
+    mix2PubKey = G^mix2PrivKey
+    leaks mix2PubKey // keys published via dirauth protocol
+]
+
+MixNode1 -> PKI: mix1PubKey
+MixNode2 -> PKI: mix2PubKey
+
+PKI -> Alice: mix1PubKey, mix2PubKey
+
+principal Alice[
+    // Alice's plaintext message
+    generates plaintext
+
+    // make a sphinx packet header
+    generates additional_data
+
+    // derive key material for each hop
+    generates clientPrivKey
+
+    // first hop
+    group_element1 = G^clientPrivKey
+    sharedSecret1 = mix1PubKey^clientPrivKey
+    integrity_key1, routing_info_key1, blinding_factor1, payload_key1 = HKDF(nil, sharedSecret1, nil)
+    
+    // second hop
+    sharedSecret2_tmp = mix2PubKey^clientPrivKey
+    sharedSecret2 = sharedSecret2_tmp^blinding_factor1
+    integrity_key2, routing_info_key2, blinding_factor2, payload_key2 = HKDF(nil, sharedSecret2, nil)
+    group_element2 = group_element1^blinding_factor1
+
+    // create the routing information block
+
+    // second hop
+    generates routing_cmds2
+    routing_info2 = ENC(routing_info_key2, routing_cmds2)   
+    integrity_tag2 = MAC(integrity_key2, CONCAT(routing_info2, additional_data, group_element2))
+
+    // first hop
+    routing_cmds1 = CONCAT(integrity_tag2, mix2PubKey, routing_info2)
+    routing_info1 = ENC(routing_info_key1, routing_cmds1)
+    integrity_tag1 = MAC(integrity_key1, CONCAT(routing_info1, additional_data, group_element1))
+
+    // Or do we want to try to model the nested SPRP construction
+    // with it's inner integrity tag as the first 16 bytes of the payload?
+    body2 = AEAD_ENC(payload_key2, plaintext, nil)
+    body1 = AEAD_ENC(payload_key1, body2, nil)
+]
+
+Alice -> MixNode1: additional_data, group_element1, routing_info1, integrity_tag1, body1
+
+phase[1]
+
+principal MixNode1[
+    mix1_shared_secret = group_element1^mix1PrivKey
+    mix1_integrity_key, mix1_routing_info_key, mix1_blinding_factor, mix1_payload_key = HKDF(nil, mix1_shared_secret, nil)
+
+    _ = ASSERT(integrity_tag1, MAC(mix1_routing_info_key, CONCAT(routing_info1, additional_data, group_element1)))
+
+    mix1_routing_cmds = DEC(mix1_routing_info_key, routing_info1)
+    mix1_integrity_tag, mix1_mix2PubKey, mix1_routing_info = SPLIT(mix1_routing_cmds)
+    mix1_group_element = group_element1^mix1_blinding_factor
+
+    mix1_body = AEAD_DEC(mix1_payload_key, body1, nil)
+]
+
+MixNode1 -> MixNode2: additional_data, mix1_group_element, mix1_routing_info, mix1_integrity_tag, mix1_body
+
+phase[2]
+
+principal MixNode2[
+    mix2_shared_secret = mix1_group_element^mix2PrivKey
+    mix2_integrity_key, mix2_routing_info_key, mix2_blinding_factor, mix2_payload_key = HKDF(nil, mix2_shared_secret, nil)
+
+    _ = ASSERT(mix1_integrity_tag, MAC(mix2_routing_info_key, CONCAT(mix1_routing_info, additional_data, mix1_group_element)))
+
+    mix2_routing_cmds = DEC(mix2_routing_info_key, mix1_routing_info)
+    mix2_body = AEAD_DEC(mix2_payload_key, mix1_body, nil)
+]
+
+queries[
+    confidentiality? plaintext
+    confidentiality? clientPrivKey
+    confidentiality? mix1PrivKey
+    confidentiality? mix2PrivKey
+    confidentiality? routing_cmds1
+    confidentiality? routing_cmds2
+
+    equivalence? routing_cmds1, mix1_routing_cmds
+    equivalence? routing_cmds2, mix2_routing_cmds
+
+    equivalence? routing_info1, mix1_routing_info
+    equivalence? mix2_routing_cmds, routing_cmds2
+    equivalence? mix2_body, plaintext
+]

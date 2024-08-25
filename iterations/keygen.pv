@@ -1,0 +1,58 @@
+
+
+free skip_chan:channel[private].
+free skip_done_chan:channel.
+
+
+(* PRG *)
+
+fun con(bitstring,bitstring):bitstring.
+fun divhead(bitstring):bitstring.
+fun divrest(bitstring):bitstring.
+    equation forall mt:bitstring;
+     con(divhead(mt),divrest(mt))=mt.
+
+type StreamKey.
+type CipherStream.
+fun to_stream_key(bitstring):StreamKey.
+fun prg(StreamKey):bitstring.
+
+
+(* types *)
+type SkipDone.
+type Receiving_FS_AEAD_State.
+fun receive_state_to_bitstring(Receiving_FS_AEAD_State):bitstring.
+
+
+event SkipDoneEvent().
+
+
+(* table *)
+table fs_aead_table(nat, bitstring).
+
+(* process macros *)
+
+let skip() =
+    in(skip_chan, (i:nat,U:nat,st:bitstring));
+    if(i <> 0) then
+    (
+	let s = prg(to_stream_key(st)) in
+	let new_st = divhead(s) in
+	let raw_key = divrest(s) in
+	insert fs_aead_table(i, raw_key);
+	out(skip_chan, ((i-1), U, new_st))
+    ) else (
+      	new ret:SkipDone;
+        out(skip_done_chan, ret);
+	event SkipDoneEvent()
+    ).
+
+query event(SkipDoneEvent).
+
+process
+   (
+    new st:bitstring;
+    out(skip_chan, (3, 1, st))
+   )
+   | !skip()
+   | (in(skip_done_chan, x:SkipDone))

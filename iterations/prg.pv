@@ -1,0 +1,30 @@
+
+
+set traceBacktracking = false.
+set reconstructTrace = false.
+set attacker = passive.
+
+
+(* PRG *)
+
+fun con(bitstring,bitstring):bitstring.
+fun divhead(bitstring):bitstring.
+fun divrest(bitstring):bitstring.
+    equation forall mt:bitstring;
+     con(divhead(mt),divrest(mt))=mt.
+
+type StreamKey.
+type CipherStream.
+fun to_stream_key(bitstring):StreamKey.
+fun prg(StreamKey):bitstring.
+	 
+
+let test() =
+    let b = prg(k) in
+    
+
+
+process
+    (
+    test()
+    )

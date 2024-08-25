@@ -1,0 +1,217 @@
+attacker[passive]
+
+// Chat friend one
+principal Alice[
+  generates sk_A
+  pk_A = G^sk_A
+
+  // not shared, a random value modulo the group order
+  //
+  // $conversationBlind^ <-- $x25519_clamp^( $RandomKey^() )
+  generates conversationBlind_A
+
+  // not shared, *in doc, not clamped* 
+  // not certainly a random value modulo the group order
+  //
+  // $indexBlindInit^ <-- $RandomKey^()
+  generates indexBlindInit_A
+
+  // shared, *in doc, not clamped*
+  // a random value modulo the group order
+  //
+  // 
+  // $indexBlind&  <-- $RandomKey^()
+  generates indexBlind_A
+  // @conversationPK& = @ToPublic^($conversationBlind^)
+  conversationPK_A = G^conversationBlind_A
+
+  // Unwinding this is difficult but here's a try:
+  // $BlindSecret?($factor<?>, $factor<?>): unclamped multiplication in the
+  // field 0..p (or mod m ~TODO)
+  // $KDF=(..): A KDF output has context = when the highest priority in the
+  // argument list has context =
+  // $DelegateCapability^($secret^, $capabilityName=) = $BlindSecret^($secret^, $KDF=($capabilityName=))
+  // $readCapability= <- $KDF=("READ")
+  // $writeCapability= <- $KDF=("WRITE")
+  // $universalReadSecret^   <-  $DelegateCapability^($conversationBlind^, $readCapability=)
+  knows public read
+  knows public salt
+  readCapability_A = HKDF(salt, read, nil)
+  universalReadSecret_presecret_A = G^conversationBlind_A
+  universalReadSecret_A = universalReadSecret_presecret_A^readCapability_A
+
+  // $universalWriteSecret^  <-  $DelegateCapability^($conversationBlind^, $writeCapability=)
+  knows public write
+  writeCapability_A = HKDF(salt, write, nil)
+  universalWriteSecret_presecret_A = G^conversationBlind_A
+  universalWriteSecret_A = universalWriteSecret_presecret_A^writeCapability_A
+ 
+  knows public index_zero
+  // $universalReadCap^  <- $universalReadSecret^  || @conversationPK& || $blindedIndex^[0]
+  blindedIndex_A = HKDF(index_zero, indexBlind_A, nil)
+  universalReadCap_A = CONCAT(universalReadSecret_A, conversationPK_A, blindedIndex_A) 
+
+  // $universalWriteCap^ <-  $universalWriteSecret^ || @conversationPK& || $blindedIndex^[0]
+  universalWriteCap_A = CONCAT(universalWriteSecret_A, conversationPK_A, blindedIndex_A) 
+
+  // @BlindPublic?(@point<?>, $factor<?>): scalar multiplication @point
+  // [$factor], should never be used with unhashed/unclamped/low-entropy
+  // factors
+  // $blindedIndex&   <-  $KDF&($indexBlind&, $index=)
+  // @mailboxID=      <- @BlindPublic=($conversationBlind^, $blindedIndex&)
+  mailboxID_precomp_A = G^conversationBlind_A
+  mailboxID_A = mailboxID_precomp_A^blindedIndex_A
+]
+
+// Chat friend two
+principal Bob[
+  generates sk_B
+  pk_B = G^sk_B
+
+  // not shared, a random value modulo the group order
+  //
+  // $conversationBlind^ <-- $x25519_clamp^( $RandomKey^() )
+  generates conversationBlind_B
+
+  // not shared, *in doc, not clamped* 
+  // not certainly a random value modulo the group order
+  //
+  // $indexBlindInit^ <-- $RandomKey^()
+  generates indexBlindInit_B
+
+  // shared, *in doc, not clamped*
+  // a random value modulo the group order
+  //
+  // 
+  // $indexBlind&  <-- $RandomKey^()
+  generates indexBlind_B
+  // @conversationPK& = @ToPublic^($conversationBlind^)
+  conversationPK_B = G^conversationBlind_B
+
+  // Unwinding this is difficult but here's a try:
+  // $BlindSecret?($factor<?>, $factor<?>): unclamped multiplication in the
+  // field 0..p (or mod m ~TODO)
+  // $KDF=(..): A KDF output has context = when the highest priority in the
+  // argument list has context =
+  // $DelegateCapability^($secret^, $capabilityName=) = $BlindSecret^($secret^, $KDF=($capabilityName=))
+  // $readCapability= <- $KDF=("READ")
+  // $writeCapability= <- $KDF=("WRITE")
+  // $universalReadSecret^   <-  $DelegateCapability^($conversationBlind^, $readCapability=)
+  knows public salt
+  knows public read
+  readCapability_B = HKDF(salt, read, nil)
+  universalReadSecret_presecret_B = G^conversationBlind_B
+  universalReadSecret_B = universalReadSecret_presecret_B^readCapability_B
+
+  // $universalWriteSecret^  <-  $DelegateCapability^($conversationBlind^, $writeCapability=)
+  knows public write
+  writeCapability_B = HKDF(salt, write, nil)
+  universalWriteSecret_presecret_B = G^conversationBlind_B
+  universalWriteSecret_B = universalWriteSecret_presecret_B^writeCapability_B
+ 
+  knows public index_zero
+  // $universalReadCap^  <- $universalReadSecret^  || @conversationPK& || $blindedIndex^[0]
+  blindedIndex_B = HKDF(index_zero, indexBlind_B, nil)
+  universalReadCap_B = CONCAT(universalReadSecret_B, conversationPK_B, blindedIndex_B) 
+
+  // $universalWriteCap^ <-  $universalWriteSecret^ || @conversationPK& || $blindedIndex^[0]
+  universalWriteCap_B = CONCAT(universalWriteSecret_B, conversationPK_B, blindedIndex_B) 
+
+  // @BlindPublic?(@point<?>, $factor<?>): scalar multiplication @point
+  // [$factor], should never be used with unhashed/unclamped/low-entropy
+  // factors
+  // $blindedIndex&   <-  $KDF&($indexBlind&, $index=)
+  // @mailboxID=      <- @BlindPublic=($conversationBlind^, $blindedIndex&)
+  mailboxID_precomp_B = G^conversationBlind_B
+  mailboxID_B = mailboxID_precomp_B^blindedIndex_B
+]
+
+// Shared out of band via REUNION
+Alice -> Bob: [conversationPK_A]
+Alice -> Bob: [indexBlind_A]
+Alice -> Bob: [blindedIndex_A]
+
+// Shared out of band via REUNION
+Bob -> Alice: [conversationPK_B]
+Bob -> Alice: [indexBlind_B]
+Bob -> Alice: [blindedIndex_B]
+
+phase[1]
+
+// This is where Alice and Bob play together
+principal Alice[
+  mailboxID_AB_A = conversationPK_B^blindedIndex_B
+]
+
+// This is where Alice and Bob play together
+principal Bob[
+  mailboxID_AB_B = conversationPK_A^blindedIndex_A
+]
+
+phase[2]
+
+principal Alice[
+// Alice now computes a blinded signature over the payload v at k, v
+// i.e.:
+// where k == the mailbox_ID which is a public key
+// where v == the payload without a signature
+//
+// Alice now sends a blinded signature over to Bob because we do not have a
+// server yet
+  generates PAYLOAD_A
+  kv_a_0_sig = SIGN(conversationBlind_A, BLIND(blindedIndex_A, PAYLOAD_A))
+]
+
+// This is dumb, very dumb. not encrypted just to prove the sigs work
+// fine in passive mode, need to complicate this with a Server + encryption
+// to simulate the correct stuff to be simulated
+Alice -> Bob: kv_a_0_sig, PAYLOAD_A
+
+principal Bob[
+  // Bob now verfies the blinded signature from Alice over the payload
+  kv_a_0_unblinded_sig_b = UNBLIND(blindedIndex_A, PAYLOAD_A, kv_a_0_sig)
+  _ = SIGNVERIF(conversationPK_A, PAYLOAD_A, kv_a_0_unblinded_sig_b)?
+]
+
+queries [
+   confidentiality? sk_A
+   confidentiality? sk_B
+
+   confidentiality? conversationBlind_A
+   confidentiality? conversationBlind_B
+
+   confidentiality? indexBlindInit_A
+   confidentiality? indexBlindInit_A
+
+   // not confidential!
+   //confidentiality? universalWriteCap_A
+   //confidentiality? universalWriteCap_B
+   //
+   //confidentiality? universalWriteSecret_A
+   //confidentiality? universalWriteSecret_B
+   //
+   //confidentiality? universalReadSecret_A
+   //confidentiality? universalReadSecret_B
+   //
+   // not confidential!
+   //confidentiality? universalReadCap_A
+   //confidentiality? universalReadCap_B
+   //
+   // not confidential!
+   //confidentiality? universalReadSecret_presecret_A
+   //confidentiality? universalReadSecret_presecret_B
+
+   freshness? conversationPK_A
+   freshness? conversationPK_B
+
+   freshness? indexBlind_A
+   freshness? indexBlind_B
+
+   freshness? blindedIndex_A
+   freshness? blindedIndex_B
+
+   equivalence? mailboxID_AB_A, mailboxID_B
+   equivalence? mailboxID_AB_B, mailboxID_A
+
+]
+
